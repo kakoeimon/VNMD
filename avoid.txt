@@ -1,0 +1,6 @@
+Symbols to avoid.
+When converting the scripts keep in mind that those letters(symbols) 
+counts one in python and more in C
+If a jump does not work see for those symbols in your sripts .scr files.
+
+ß
