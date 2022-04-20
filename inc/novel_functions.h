@@ -2,23 +2,24 @@
 #define H_NOVEL_FUNCTIONS
 
 #include "genesis.h"
-#define NONOT 16000
-
-extern s32 NOVEL_POSITION;
-extern u16 NOVEL_SCR_INDEX;
-extern int NOVEL_BACK_INDEX;
-extern int NOVEL_FORE_INDEX;
-extern int NOVEL_FORE_IMGS[3];
-extern int NOVEL_FORE_IMGS_POS[3][2];
-
-extern int NOVEL_SELECTED;
-extern int NOVEL_ADVANCE;
-
-extern int NOVEL_PAUSE_MENU;
-
-extern int NOVEL_INTERAPTED;
 
 
+typedef struct Novel_ {
+    s32 position;
+    u16 script_index;
+    s16 back_index;
+    s16 fore_index;
+    s16 fore_pal;
+    s16 selected;
+    s16 advance;
+    s16 pause_menu;
+    s16 pause_menu_pos;
+    s16 pause_menu_selected;
+    s16 fore_imgs[3];
+    s16 fore_pos[3][2];
+} Novel;
+
+extern Novel NOVEL;
 
 void draw_int(int value, int x, int y);
 

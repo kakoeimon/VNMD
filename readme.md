@@ -10,13 +10,13 @@ This works only on Windows.
 
 First you will need to install [SGDK](https://github.com/Stephane-D/SGDK/releases/tag/v1.70) (version this repo used is 1.70 ) Probably it will be best if you instal SGDK at c:\sgdk
 
-Then [ImageMagick](https://imagemagick.org/script/download.php) and when you install check the convert legacy.
-
 Next you will need [Python3](https://www.python.org/downloads/). Probably you already have this so check it in your Command Prompt by typing: python --version.
 
 You will also need [PILLOW](https://pillow.readthedocs.io/en/stable/installation.html) for Python. Use pip commands to install it.
 
-Then you will need a VNDS visual novel the list is [here](https://github.com/BASLQC/vnds/wiki/List-of-VNDS-Visual-Novels)
+Then Optionaly but for much better quality, install [ImageMagick](https://imagemagick.org/script/download.php) and when you install check the convert legacy.
+
+Last you will need a VNDS visual novel the list is [here](https://github.com/BASLQC/vnds/wiki/List-of-VNDS-Visual-Novels)
 * Prefer to download SD versions of the Novels.
 * Warning : Many Novels in this list are broken. Some contain Japanese characters or not standard character, others are just realy bad ports. For testing purposes I suggest to download the "The Best Eroge Ever"
 
@@ -26,11 +26,11 @@ Inside the novel dir you will have directories named background, foreground and 
 Some novels have those directories zipped unzip them.
 
 Note
-* all extractions must be made without creating a directory with the name of the zip.
+* all novel extractions must be made without creating a directory with the name of the zip.
 
 Last open the novel.ini
 ````
-MAGICK_CONVERT_PATH C:/Program Files/ImageMagick-7.1.0-Q16-HDRI/convert
+MAGICK_CONVERT_PATH C:/Program Files/ImageMagick-7.1.0-Q16-HDRI/convert.exe
 BG_WIDTH 32
 BG_HEIGHT 24
 BG_TOP 0
@@ -41,7 +41,7 @@ TEXT_RIGHT 38
 COMPRESSION APLIB
 SAVE_CHECK 1123
 ````
-Find the convert.exe that it was installed with your ImageMagick and replace the path at MAGICK_CONVERT_PATH with yours.
+If you installed ImageMagick find the convert.exe that it was installed with your ImageMagick and replace the full file path at MAGICK_CONVERT_PATH with yours. Additionally you can leave the path empty or pointing not to a file to use just PILLOW for the convertion of the graphics. But Image Magick gives much better quality.
 
 Now you are ready to convert.
 
@@ -74,19 +74,7 @@ Run.
 build.bat
 ````
 This will build everything to the final rom
-But here is and were you are going to get the errors if an image is problematic.
-For some reason black and white images do not convert well (this is on the todo list)
-One solution is add some colors on it or change the hue.
-So if the game does not compile and tou get an error search for the name of the failed image fix it with extra colors othe that gray scale and run.
-````
-python convert_images.py local path to the image
-````
-for example
-````
-python convert_images.py novel\background\IMG_10.jpg
-````
-Then build again and repeat until you have no errors.
-If this happens open the dir out and inside you will find the file out.bin. This is your rom.
+
 
 ### Warning 
 If the rom.bin is bigger than 4 MB then you will have to compile the SGDK to force it to use Bank Switching otherwise MD will crash.
@@ -109,7 +97,7 @@ The opposite must be made if Bank Switching is enabled and the rom is less than 
 ## novel.ini
 The novel.ini is like this
 ````
-MAGICK_CONVERT_PATH C:/Program Files/ImageMagick-7.1.0-Q16-HDRI/convert
+MAGICK_CONVERT_PATH C:/Program Files/ImageMagick-7.1.0-Q16-HDRI/convert.exe
 BG_WIDTH 32
 BG_HEIGHT 24
 BG_TOP 0
@@ -120,7 +108,7 @@ TEXT_RIGHT 38
 COMPRESSION APLIB
 SAVE_CHECK 1123
 ````
-* MAGICK_CONVERT_PATH is the path to the convert.exe
+* MAGICK_CONVERT_PATH is the path to the convert.exe if the path does not point to a file PILLOW will be used to convert the Images.
 * BG_WIDTH is the width you want the image to be in tiles (one tile is 8px)
 * BG_HEIGHT is the height you want the image to be in tiles (one tile is 8px)
 * BG_TOP where the image is going to be drawn and this is the top part (one tile is 8px)
@@ -139,9 +127,15 @@ SAVE_CHECK 1123
 Many VNDS Novels require work to make them run.
 
 
-## TODO and Ask for help
-Probably the best way will had been not to use an external to Python program to do the image conversion. Doing all this with PILLOW would had been ideal but I can't get PILLOW to save an image with only 16 indexed colors it always expands the colors to 256 so if someone knows how to do this please inform me.
-Also another thing I want to find is to find a way for ImageMagick to save and the gray scaled images to 16 indexed colors but I do not know how to do it.
+## TODO
+* Add music.
+* * Music files cannot be converted to MD's format but make the converter to check for an XGM file with the same name in the script to add and use it.
 
-Add music.
-Music files cannot be converted to MD's format but make the converter to check for an XGM file with the same name in the script to add and use it.
+* Add sounds.
+* * Sounds are not implemented right now cause all the novels have too many sounds a solution to pick some of them must be found.
+
+* Add random command
+* Add delay command
+* Add external_function command
+* * With an external function command we will have the ability to call C functions from the Script and get the control of the Novel.
+

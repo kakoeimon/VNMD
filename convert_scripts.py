@@ -110,18 +110,18 @@ functions = {"bgload":0, "setimg":1, "sound":2, "music":3,
 def get_novel_script_alias(script_file):
     f = script_file.replace("res\\", "", 1).replace(".scr", "")
     
-    alias = f.replace("\\", "_").replace("novel_script_", "", 1)
+    alias = f.replace("\\", "_").replace("-", "_").lower().replace("novel_script_", "", 1).replace("~", "_")
     return alias
 
 backgrounds = {}
 for bg_file in glob.glob('novel/background/**/*.jpg', recursive=True):
-    backgrounds[bg_file.replace("novel/background\\", "", 1).replace("\\", "/").replace("/", "_").replace("-", "_").lower()] = len(backgrounds)
+    backgrounds[bg_file.replace("novel/background\\", "", 1).replace("\\", "/").replace("/", "_").replace("-", "_").lower().replace("~", "_")] = len(backgrounds)
 for bg_file in glob.glob('novel/background/**/*.png', recursive=True):
-    backgrounds[bg_file.replace("novel/background\\", "", 1).replace("\\", "/").replace("/", "_").replace("-", "_").lower()] = len(backgrounds)
+    backgrounds[bg_file.replace("novel/background\\", "", 1).replace("\\", "/").replace("/", "_").replace("-", "_").lower().replace("~", "_")] = len(backgrounds)
 
 foregrounds = {}
 for fr_file in glob.glob('novel/foreground/**/*.png', recursive=True):
-    foregrounds[fr_file.replace("novel/foreground\\", "").replace("\\", "/").replace("/", "_").replace("-", "_").lower()] = len(foregrounds)
+    foregrounds[fr_file.replace("novel/foreground\\", "").replace("\\", "/").replace("/", "_").replace("-", "_").lower().replace("~", "_")] = len(foregrounds)
 
 if not os.path.exists('res/script'):
     os.mkdir('res/script')
@@ -145,15 +145,21 @@ scripts_c.write("\tscript_main,\n")
 script_res = open("res\\scripts_res.res", "w")
 
 scripts_dir = {"main":0}
-script_label = {}
+script_label = {"main": {}}
 script_var = {"selected":0}
 script_byte_count = []
 tmp_var = {}
 tmp_global_var = {}
-for script_file in glob.glob('novel\\script\\*.scr', recursive=False):
+for d in glob.glob('novel\\script\\**\\*\\', recursive=True):
+    d = d.replace("novel", "res", 1)
+    if not os.path.exists(d):
+        os.mkdir(d)
+
+for script_file in glob.glob('novel\\script\\**\\*.scr', recursive=True):
 
     alias = get_novel_script_alias(script_file)
-    script_label[alias] = {}
+    if alias != "main":
+        script_label[alias] = {}
     try:
         lines = open(script_file, 'r').readlines()
     except Exception as e:
@@ -165,9 +171,9 @@ for script_file in glob.glob('novel\\script\\*.scr', recursive=False):
     bytes_count = 0
     for i in range(len(lines)):
         line = lines[i].lstrip()
-        l = line.replace("\t", " ").replace("\n", " ").replace(":", " ").split()
+        l = line.replace("\t", " ").replace("\n", " ").replace(":", " ").lstrip().split()
         bytes_count += count_line(lines, i)
-        #print(l)
+
         
         if len(l) == 0:
             pass
@@ -197,7 +203,7 @@ for key in tmp_var:
 
 #print(script_label)
 
-for script_file in glob.glob('novel\\script\\*.scr', recursive=False):
+for script_file in glob.glob('novel\\script\\**\\*.scr', recursive=True):
     f = script_file.replace("res\\", "", 1).replace(".scr", "")
     
     alias = f.replace("\\", "_").replace("novel_script_", "", 1).replace("-", "_").lower()
@@ -209,7 +215,7 @@ for script_file in glob.glob('novel\\script\\*.scr', recursive=False):
 #print(scripts_dir)
 
 
-for script_file in glob.glob('novel\\script\\*.scr', recursive=False):
+for script_file in glob.glob('novel\\script\\**\\*.scr', recursive=True):
     bytes_count = 0
     script = open(script_file, 'r')
     out_file = script_file.replace("novel\\", "res\\").replace(".scr", ".bin").replace("-", "_")
@@ -226,13 +232,13 @@ for script_file in glob.glob('novel\\script\\*.scr', recursive=False):
         c = line.split(" ")[0].replace("\n", "").replace("\t", "")
         if c == "bgload":
             out.write(functions["bgload"].to_bytes(1, "big"))
-            t = line.replace("bgload ", "", 1).lower().replace("\n", "", 1).replace("\t", "", 1).replace("/", "_").replace("-", "_").split(" ")
+            t = line.replace("bgload ", "", 1).lower().replace("\n", "", 1).replace("\t", "", 1).replace("/", "_").replace("-", "_").replace("~", "_").split(" ")
             key = t[0]
             try:
                 out.write(backgrounds[key].to_bytes(2, "big"))
             except:
                 print("\n\n\n------------------- ERROR------------------")
-                print("\nThe background image \"" + key + "\" in script \"" + script_file + "\", line " + str(i+1) + " does not exists.")
+                print("\nThe background image " + key + " in script \"" + script_file + "\", line " + str(i+1) + " does not exists.")
                 #print(backgrounds.keys())
                 #out.write(backgrounds[backgrounds.keys().0].to_bytes(1, "big"))
                 exit()
@@ -244,7 +250,7 @@ for script_file in glob.glob('novel\\script\\*.scr', recursive=False):
             
         elif c == "setimg":
             out.write(functions["setimg"].to_bytes(1, "big"))
-            t = line.replace("setimg ", "", 1).lower().replace("\n", "", 1).replace("\t", "", 1).replace("/", "_").split(" ")
+            t = line.replace("setimg ", "", 1).lower().replace("\n", "", 1).replace("\t", "", 1).replace("/", "_").replace("~", "_").split(" ")
             key = t[0].replace("-", "_")
             try:
                 out.write(foregrounds[key].to_bytes(2, "big"))
@@ -349,7 +355,13 @@ for script_file in glob.glob('novel\\script\\*.scr', recursive=False):
             else:
                 out.write(int(script_var[coms[3]]).to_bytes(2, "big"))
                 out.write((1).to_bytes(1, "big"))
-            out.write(count_to_fi(lines, i+1, 0).to_bytes(2, "big"))
+            try:
+                out.write(count_to_fi(lines, i+1, 0).to_bytes(2, "big"))
+            except:
+                print(scripts_dir)
+                print("\n\n\n------------------- ERROR------------------")
+                print("\nThe if in script \"" + script_file + "\", line " + str(i+1) + " does not have fi.")
+                exit()
             pass
         elif c == "fi":
             out.write(functions["fi"].to_bytes(1, "big"))
@@ -366,7 +378,7 @@ for script_file in glob.glob('novel\\script\\*.scr', recursive=False):
                 print("\nThe jump \"" + key + "\" in script \"" + script_file + "\", line " + str(i+1) + " does not exists.")
                 exit()
             if len(t) > 1:
-                num = int(script_label[t[0]][t[1]])
+                num = int(script_label[key][t[1]])
                 out.write(num.to_bytes(4, "big", signed=True))
             else:
                 out.write(int(0).to_bytes(4, "big", signed=True))
@@ -384,8 +396,15 @@ for script_file in glob.glob('novel\\script\\*.scr', recursive=False):
             out.write(functions["goto"].to_bytes(1, "big"))
             t = line.replace("goto ", "", 1).lower().replace("\n", "", 1).replace("\t", "", 1).replace("/", "_").replace(".scr", "").split(" ")
             alias = get_novel_script_alias(script_file)
-            pos = script_label[alias][t[0]]
-            out.write(pos.to_bytes(4, "big", signed=True))
+            try:
+                pos = script_label[alias][t[0]]
+                out.write(pos.to_bytes(4, "big", signed=True))
+            except:
+                print("\n\n\n------------------- ERROR------------------")
+                print("\nThe goto \"" + t[0] + "\" in script \"" + script_file + "\", line " + str(i+1) + " does not exists.")
+                exit()
+            
+            
             pass
         elif c == "cleartext":
             print(line)
