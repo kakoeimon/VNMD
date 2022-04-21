@@ -85,10 +85,6 @@ void novel_choice_event_handler(u16 joy, u16 changed, u16 state) {
     }
 }
 
-void novel_change_pal_for_text() {
-    PAL_setColor(15, RGB24_TO_VDPCOLOR(0xffffff));
-    PAL_setColor(0, RGB24_TO_VDPCOLOR(0x000000));
-}
 
 void novel_set_bg_palette() {
     PAL_setPalette(PAL0, NOVEL_BACKGROUND[NOVEL.back_index]->palette->data, CPU);
@@ -214,9 +210,6 @@ void novel_load() {
     
 }
 
-void novel_vblank_callback() {
-    novel_set_bg_palette();
-}
 
 void novel_pause_menu() {
     if (NOVEL.pause_menu) {
@@ -362,13 +355,6 @@ void novel_reset() {
 
     VDP_setWindowVPos(TRUE, NOVEL_TEXT_TOP);
     VDP_setTextPlane(WINDOW);
-
-    VDP_setHInterrupt(TRUE);
-    VDP_setHIntCounter(NOVEL_TEXT_TOP * 8 - 1);
-    SYS_setHIntCallback(novel_change_pal_for_text);
-    
-
-    SYS_setVBlankCallback(novel_vblank_callback);
 
     novel_reset_vars();
 }
