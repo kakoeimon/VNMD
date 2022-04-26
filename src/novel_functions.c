@@ -13,17 +13,26 @@ void draw_int(int value, int x, int y) {
     VDP_drawText(str, x, y);
 }
 
+void clear_text() {
+    //static s16 novel_text_height = NOVEL_TEXT_BOTTOM - NOVEL_TEXT_TOP;
+    VDP_clearPlane(WINDOW, TRUE);
+    //VDP_clearTextArea(NOVEL_TEXT_LEFT, NOVEL_TEXT_TOP, NOVEL_TEXT_WIDTH, novel_text_height);
+}
+
 void draw_background(int index, int fade_time) {
     const Image *img = NOVEL_BACKGROUND[index];
     
     //VDP_clearPlane(BG_B, FALSE);
-    VDP_clearPlane(BG_A, TRUE);
+    
+    
     NOVEL.fore_pal = NOVEL_FORE_PAL_START;
     NOVEL.fore_index = TILE_USERINDEX + img->tileset->numTile;
     for (int i = 0; i < 3; i++) {
         NOVEL.fore_imgs[i] = MAX_S16;
     }
+    VDP_clearPlane(BG_A, TRUE);
     SYS_doVBlankProcess();
+    
     SYS_doVBlankProcess();
     if (index != NOVEL.back_index) {
 
@@ -88,11 +97,9 @@ int draw_line(char *str, int draw_pos) {
         }
     }
     strncpy(line, str, wanted_length++);
-    if (line[0] == '@' || line[0] == '!' || line[0] == '~') {
-        VDP_drawText(&line[1], NOVEL_TEXT_LEFT, draw_pos);
-    } else {
-        VDP_drawText(line, NOVEL_TEXT_LEFT, draw_pos);
-    }
+    
+    VDP_drawText(line, NOVEL_TEXT_LEFT, draw_pos);
+    
 
     if (draw_pos >= NOVEL_TEXT_BOTTOM - 1 || strlen(str) <= NOVEL_TEXT_WIDTH) {
         draw_pos = NOVEL_TEXT_TOP - 1;
@@ -120,7 +127,24 @@ int draw_line(char *str, int draw_pos) {
 }
 
 int draw_text(char *str) {
-    if (!draw_line(str, NOVEL_TEXT_TOP)) {
+    if (str[0] == '@' || str[0] == '!' || str[0] == '~') {
+        int draw_pos = NOVEL_TEXT_TOP - 1;
+        if (str[0] == '!') {
+            char tmp_str[NOVEL_TEXT_WIDTH];
+            for (int i = 0; i < NOVEL_TEXT_WIDTH; i++) {
+                tmp_str[i] = ' ';
+            }
+            tmp_str[NOVEL_TEXT_WIDTH-2] = '!';
+            if (!draw_line(tmp_str, NOVEL_TEXT_BOTTOM - 2)) {
+                return 0;
+            }
+        } else {
+            if (!draw_line(str+1, NOVEL_TEXT_TOP)) {
+                return 0;
+            }
+        }
+        
+    } else if (!draw_line(str, NOVEL_TEXT_TOP)) {
         return 0;
     }
     return strlen(str) + 2;

@@ -133,9 +133,7 @@ Many VNDS Novels require work to make them run.
 
 * Add sounds.
 * * Sounds are not implemented right now cause all the novels have too many sounds a solution to pick some of them must be found.
-* Add RETFILE and RETLABEL vars
 * Add random command
-* Add delay command
 * Add external_function command
 * * With an external function command we will have the ability to call C functions from the Script and get the control of the Novel.
 

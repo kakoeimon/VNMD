@@ -6,6 +6,8 @@ from PIL import Image
 import PIL
 import sys
 
+from numpy import append
+
 ##########################################
 ini = open("novel.ini")
 magick_convert = ini.readline().replace("MAGICK_CONVERT_PATH ", "").replace("\n", "")
@@ -104,100 +106,135 @@ def reduce_colors_convert(img_file, num_colors):
         'threshold,8,8,8',
         img_file])
 
-def replace_alpha(img_file):
-
     img = Image.open(img_file)
-    alpha = img.split()[-1]
-    bg = Image.new(img.mode, img.size, (0, 0, 0, 255))
-    bg.paste(alpha, mask=alpha)
-    bg = bg.quantize(2).convert("L")
-    pink = Image.new("RGB", img.size, (alpha_color[0], alpha_color[1], alpha_color[2]))
-    bg = Image.composite(img.convert("RGB"), pink, bg)
-    bg.save(img_file)
-    #bg.save(img_file)
-    #new_image = Image.new("RGBA", img.size, (255, 0, 255))
-    #new_image.paste(img, (0, 0), img)
-    #new_image = new_image.convert("RGB")
-    #new_image.save(img_file)
+    if img.mode != "P":
+        img = img.convert("RGB").quantize(num_colors)
+        img.save(img_file)
+
+def replace_alpha(img_file):
+    if magick_convert == False:
+
+        img = Image.open(img_file)
+        bg = Image.new("RGB", img.size, (0, 0, 0)).convert("L")
+        pink = Image.new("RGBA", img.size, (alpha_color[0], alpha_color[1], alpha_color[2]))
+        bg = Image.composite(pink, img, bg)
+        bg.save(img_file)
+    else:
+        img = Image.open(img_file)
+        alpha = img.getchannel('A')
+        bg = Image.new(img.mode, img.size, (0, 0, 0, 255))
+        bg.paste(alpha, mask=alpha)
+        bg = bg.quantize(2).convert("L")
+        pink = Image.new("RGBA", img.size, (alpha_color[0], alpha_color[1], alpha_color[2]))
+        bg = Image.composite(img.convert("RGB"), pink, bg)
+        bg.save(img_file)
+
 
 def check_colors(img_file: str):
-    
+    original_img = Image.open(img_file)
+        #pal = Image.open("Mega_Drive_Palette_indexed.png")
+    img = original_img.convert(mode="RGB")
     #print(len(img.getcolors()))
     if magick_convert == False:
-        img = Image.open(img_file)
-        #pal = Image.open("Mega_Drive_Palette_indexed.png")
-        img = img.convert(mode="RGB", colors= 256, dither=0)
-        #img = img.quantize(256, dither=3, palette=pal)
-        #pal = img.quantize(16, method=1)
-        #img = img.quantize(16, dither=3, palette=pal, method=1)
         
-        if "foreground" in img_file:
-            img = img.quantize(16)
-            index = 15
-            palette = img.getpalette()
-            for i in range(0,len(img.getcolors())):
-                if palette[i*3] == alpha_color[0] and palette[i*3+1] == alpha_color[1] and palette[i*3+2] == alpha_color[2]:
-                    index = i
-                    break
-            palette = [index]
-            for i in range(1,len(img.getcolors())):
-                if i == index:
-                    palette.append(0)
+        if "background" in img_file:
+            img = original_img.quantize(16, dither=0)
+            pal = img.getpalette()
+            
+            if (len(pal)) >= 16*3:
+                black_index = -1
+                pal = img.getpalette()
+                for i in range(0, 16):
+                    if pal[i*3] == 0 and pal[i*3 + 1] == 0 and pal[i*3 + 2] == 0:
+                        black_index = i
+                        break
+                if black_index > 0 and black_index < 16:
+                    remap = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+                    remap[0] = black_index
+                    remap[black_index] = 0
+                    img = img.remap_palette(remap)
                 else:
-                    palette.append(i)
-            
-            img = img.remap_palette(palette)
-        if "background" in img_file:
-            bg = img.quantize(14)
-            pal = bg.getpalette()
-            pal.insert(0, 0)
-            pal.insert(0, 0)
-            pal.insert(0, 0)
-            pal.pop()
-            pal.pop()
-            pal.pop()
+                    img = original_img.quantize(15, dither=0)
+            if len(img.getcolors()) < 16:
+                pal = img.getpalette()
+                while len(pal) < 16*3:
+                    pal.append(0)
+                    pal.append(0)
+                    pal.append(0)
 
-            bg = Image.new("P", [16,16])
-            bg.putpalette(pal)
-            img = img.quantize(15, palette=bg, dither=0)
-            #print(pal)
+                pal[15*3] = 0
+                pal[15*3+1] = 0
+                pal[15*3+2] = 0
+                img.putpalette(pal)
+                img = img.remap_palette([15, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 0])
+
+                
+        elif "foreground" in img_file:
+            img = original_img.quantize(15, dither=0)
+            pal = img.getpalette()
+            while len(pal) < 16 * 3:
+                pal.append(0)
+                pal.append(0)
+                pal.append(0)
+            pal[15*3] = 255
+            pal[15*3 + 1] = 255
+            pal[15*3 + 2] = 255
+            img.putpalette(pal)
             
         img.save(img_file)
-    else:
-        num_colors = 16
+    else: #MAGICK CONVERT
+        img = original_img.convert("RGB")
         if "background" in img_file:
-            num_colors = 14
+            img.close()
+            reduce_colors_convert(img_file, 16)
+            img = Image.open(img_file)
+            pal = img.getpalette()
+            
+            if (len(pal)) >= 16*3:
+                black_index = -1
+                pal = img.getpalette()
+                for i in range(0, 16):
+                    if pal[i*3] == 0 and pal[i*3 + 1] == 0 and pal[i*3 + 2] == 0:
+                        black_index = i
+                        break
+                if black_index > 0 and black_index < 16:
+                    remap = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+                    remap[0] = black_index
+                    remap[black_index] = 0
+                    img = img.remap_palette(remap)
+                else:
+                    original_img.save(img_file)
+                    img = Image.open(img_file)
+                    reduce_colors_convert(img_file, 15)
+                    img = Image.open(img_file)
+            if len(img.getcolors()) < 16:
+                pal = img.getpalette()
+                while len(pal) < 16*3:
+                    pal.append(0)
+                    pal.append(0)
+                    pal.append(0)
 
+                pal[15*3] = 0
+                pal[15*3+1] = 0
+                pal[15*3+2] = 0
+                img.putpalette(pal)
+                img = img.remap_palette([15, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 0])
 
-        reduce_colors_convert(img_file, num_colors)
-        img = Image.open(img_file)
-        
-        
-        if img.mode != "P":
-            img = img.convert("RGB")
-            img = img.quantize(num_colors)
-        
-        if "background" in img_file:
-            bg = img.quantize(14)
-            pal = bg.getpalette()
-            pal.insert(0, 0)
-            pal.insert(0, 0)
-            pal.insert(0, 0)
-            pal.pop()
-            pal.pop()
-            pal.pop()
-            pal.insert(15*3, alpha_color[0])
-            pal.insert(15*3 + 1, alpha_color[1])
-            pal.insert(15*3 + 2, alpha_color[2])
-            pal.pop()
-            pal.pop()
-            pal.pop()
-
-            bg = Image.new("P", [16,16])
-            bg.putpalette(pal)
-            img = img.convert("RGB").quantize(16, palette=bg, dither=0)
+                
+        elif "foreground" in img_file:
+            reduce_colors_convert(img_file, 15)
+            img = Image.open(img_file)
+            pal = img.getpalette()
+            while len(pal) < 16 * 3:
+                pal.append(0)
+                pal.append(0)
+                pal.append(0)
+            pal[15*3] = 255
+            pal[15*3 + 1] = 255
+            pal[15*3 + 2] = 255
+            img.putpalette(pal)
+            
         img.save(img_file)
-    
     
     
 def check_back_size(img_file):
@@ -208,10 +245,10 @@ def check_back_size(img_file):
 
 
 def convert_images():
-
+        
     for background in glob.glob('novel\\background\\**\\*.jpg', recursive=True):
         out = background.replace('novel\\', 'res\\').replace('.jpg', '.png').replace("-", "_").replace("~", "_").lower()
-        
+        print(out)
         img = Image.open(background).convert("RGBA")
         img.save(out)
 
@@ -220,13 +257,9 @@ def convert_images():
         check_back_size(out)
         check_colors(out)
 
-        print(out)
-        
-        
-
     for background in glob.glob('novel\\background\\**\\*.png', recursive=True):
         out = background.replace('novel\\', 'res\\').lower().replace("-", "_").replace("~", "_")
-        
+        print(out)
         img = Image.open(background).convert("RGB")
         img.save(out)
 
@@ -234,22 +267,25 @@ def convert_images():
             scale_n_save_bg(out)
         check_back_size(out)
         check_colors(out)
-
-        print(out)
-
+    
     for foreground in glob.glob('novel\\foreground\\**\\*.png', recursive=True):
         out = foreground.replace('novel\\', 'res\\').lower().replace("-", "_").replace("~", "_")
         
         img = Image.open(foreground).convert("RGBA")
         img.save(out)
-
+        print(out)
         if(img_scale != 1.0):
             scale_n_save_bg(out)
         crop_n_save(out)
         replace_alpha(out)
         check_colors(out)
 
-        print(out)
+    
+
+
+
+
+        
 
 
 if len(sys.argv) > 1:

@@ -26,6 +26,6 @@ void draw_int(int value, int x, int y);
 void draw_background(int index, int fade_time);
 void draw_foreground(int index, int x, int y);
 int draw_text(char *str);
-
+void clear_text();
 
 #endif

@@ -1,10 +1,6 @@
 import os
 import glob
-from random import choices
 from PIL import Image
-import sys
-
-from numpy import var
 
 ##########################################
 ini = open("novel.ini")
@@ -70,9 +66,14 @@ def count_line(lines, i):
     elif c == "fi":
         count += 1
     elif c == "jump":
-        count += 7
-    elif c == "dealy":
-        count += 0
+        t = line.replace("\t", "").replace("jump ", "", 1).lower().replace("\n", "").replace("/", "_").replace(".scr", "").split(" ")
+        key = t[0].replace("-", "_")
+        if (key[0] == "$"):
+            count += 1
+        else:
+            count += 7
+    elif c == "delay":
+        count += 3
     elif c == "random":
         count += 0
     elif c == "label":
@@ -102,15 +103,16 @@ def count_to_fi(lines, i, ifs_count):
 
 functions = {"bgload":0, "setimg":1, "sound":2, "music":3,
             "text":4, "choice":5, "setvar":6, "gsetvar":7,
-            "if":8, "fi":9, "jump":10, "dealy":11, "random":12,
+            "if":8, "fi":9, "jump":10, "delay":11, "random":12,
             "label":13, "goto": 14, "cleartext": 15 , "reset_vars": 16,
+            "retjump": 17,
 
 }
 
 def get_novel_script_alias(script_file):
     f = script_file.replace("res\\", "", 1).replace(".scr", "")
     
-    alias = f.replace("\\", "_").replace("-", "_").lower().replace("novel_script_", "", 1).replace("~", "_")
+    alias = f.replace("\\", "_").replace("-", "_").lower().replace("novel_script_", "", 1).replace("~", "_").replace("\"", "")
     return alias
 
 backgrounds = {}
@@ -126,14 +128,7 @@ for fr_file in glob.glob('novel/foreground/**/*.png', recursive=True):
 if not os.path.exists('res/script'):
     os.mkdir('res/script')
 
-scripts_h = open("inc\\novel_scripts.h", "w")
-scripts_h.write("#ifndef H_NOVEL_SCRIPTS\n")
-scripts_h.write("#define H_NOVEL_SCRIPTS\n\n")
-scripts_h.write("#include \"genesis.h\"\n")
-scripts_h.write("#include \"scripts_res.h\"\n\n")
-scripts_h.write("extern const u8* NOVEL_SCRIPTS[];\n\n")
-scripts_h.write("extern const s32 NOVEL_SCRIPTS_BYTES_COUNT[];\n\n")
-scripts_h.write("\n#endif\n")
+
 
 
 scripts_c = open("src\\novel_scripts.c", "w")
@@ -147,6 +142,8 @@ script_res = open("res\\scripts_res.res", "w")
 scripts_dir = {"main":0}
 script_label = {"main": {}}
 script_var = {"selected":0}
+script_retfile = ["retfile"]
+script_retlabel = ["retlabel"]
 script_byte_count = []
 tmp_var = {}
 tmp_global_var = {}
@@ -180,14 +177,23 @@ for script_file in glob.glob('novel\\script\\**\\*.scr', recursive=True):
         elif l[0] == "label":
             script_label[alias][l[1].lower()] = bytes_count
         elif l[0] == "gsetvar":
-            if l[1] not in tmp_global_var.keys() and l[1] != "selected":
-                tmp_global_var[l[1]] = len(tmp_global_var)
+            if l[1].lower() not in tmp_global_var.keys() and l[1].lower() != "selected":
+                tmp_global_var[l[1].lower()] = len(tmp_global_var)
         elif l[0] == "setvar":
-            if l[1] != "~" and l[1] not in tmp_var.keys() and l[1] != "selected":
-                tmp_var[l[1]] = len(tmp_var)
+            l[1] = l[1].lower()
+            if l[1] != "~" and l[1] not in tmp_var.keys() and l[1] != "selected" and l[1] not in script_retfile and l[1] not in script_retlabel:
+                l[3] = l[3].lower()
+                if l[2] == "=" and (l[3] in script_retfile or l[3] in script_retlabel):
+                    if l[3] in script_retfile:
+                        script_retfile.append(l[1])
+                    else:
+                        script_retlabel.append(l[1])
+                else:
+                    tmp_var[l[1]] = len(tmp_var)
+                
+                
             pass
             pass
-
 
 
 tmp_global_var = sorted(tmp_global_var)
@@ -199,7 +205,25 @@ for key in tmp_global_var:
 for key in tmp_var:
     script_var[key] = len(script_var)
 
-#print(script_var)
+script_retfile = sorted(script_retfile)
+script_retlabel = sorted(script_retlabel)
+for ret in script_retfile:
+    script_var[ret] = len(script_var)
+
+for ret in script_retlabel:
+    script_var[ret] = len(script_var)
+
+
+scripts_h = open("inc\\novel_scripts.h", "w")
+scripts_h.write("#ifndef H_NOVEL_SCRIPTS\n")
+scripts_h.write("#define H_NOVEL_SCRIPTS\n\n")
+scripts_h.write("#include \"genesis.h\"\n")
+scripts_h.write("#include \"scripts_res.h\"\n\n")
+scripts_h.write("#define NOVEL_RETFILE_INDEX " + str(script_var["retfile"]) + "\n")
+scripts_h.write("#define NOVEL_RETLABEL_INDEX " + str(script_var["retlabel"]) + "\n")
+scripts_h.write("extern const u8* NOVEL_SCRIPTS[];\n\n")
+scripts_h.write("extern const s32 NOVEL_SCRIPTS_BYTES_COUNT[];\n\n")
+scripts_h.write("\n#endif\n")
 
 #print(script_label)
 
@@ -213,7 +237,6 @@ for script_file in glob.glob('novel\\script\\**\\*.scr', recursive=True):
 
 
 #print(scripts_dir)
-
 
 for script_file in glob.glob('novel\\script\\**\\*.scr', recursive=True):
     bytes_count = 0
@@ -287,6 +310,7 @@ for script_file in glob.glob('novel\\script\\**\\*.scr', recursive=True):
                 out.write(c.encode())           
                 out.write((0).to_bytes(1, "big"))
         elif c == "setvar" or c == "gsetvar":
+            coms[1] = coms[1].lower()
             if (coms[1] == "~"):
                 out.write(functions["reset_vars"].to_bytes(1, "big"))
                 continue
@@ -309,16 +333,42 @@ for script_file in glob.glob('novel\\script\\**\\*.scr', recursive=True):
                 exit()
             if coms[3].isnumeric():
                 out.write(int(coms[3]).to_bytes(2, "big"))
+                # 0 it is a number to be added at the var
                 out.write(int(0).to_bytes(1, "big"))
             else:
-                try:
-                    out.write(int(script_var[coms[3]]).to_bytes(2, "big"))
-                    out.write(int(1).to_bytes(1, "big"))
-                except:
-                    print(script_var)
-                    print("\n\n\n------------------- ERROR------------------")
-                    print("The var " + coms[3] + " in script \"" + script_file + "\", line " + str(i+1) + " does not exists")
-                    exit()
+                coms[3] = coms[3].lower()
+                if coms[1] in script_retfile:
+                    
+                    key = get_novel_script_alias(coms[3])
+                    if key in script_retfile:
+                        out.write(int(script_var[key]).to_bytes(2, "big"))
+                        #2 it is another retfile to be added to a retfile
+                        out.write(int(2).to_bytes(1, "big"))
+                    elif key in scripts_dir.keys():
+                        out.write(int(scripts_dir[key]).to_bytes(2, "big"))
+                        #3 it is for script file to retfile
+                        out.write(int(3).to_bytes(1, "big"))
+                elif coms[1] in script_retlabel:
+                    key = get_novel_script_alias(coms[3])
+                    alias = get_novel_script_alias(script_file)
+                    if key in script_retlabel:
+                        out.write(int(script_var[key]).to_bytes(2, "big"))
+                        #4 is for another retlabel to retlabel
+                        out.write(int(4).to_bytes(1, "big"))
+                    elif key in script_label[alias]:
+                        out.write(int(script_label[alias][key]).to_bytes(2, "big"))
+                        #5 is for adding label name to retlabel
+                        out.write(int(5).to_bytes(1, "big"))
+                else:
+                    try:
+                        out.write(int(script_var[coms[3]]).to_bytes(2, "big"))
+                        #1 it is another var to be added at the var
+                        out.write(int(1).to_bytes(1, "big"))
+                    except:
+                        print(script_var)
+                        print("\n\n\n------------------- ERROR------------------")
+                        print("The var " + coms[3] + " in script \"" + script_file + "\", line " + str(i+1) + " does not exists")
+                        exit()
             pass
         elif c == "gset_var":
             pass
@@ -328,7 +378,7 @@ for script_file in glob.glob('novel\\script\\**\\*.scr', recursive=True):
             t = line.replace("if ", "", 1).replace("\n", "").replace("\t", " ").split(" ")
             #out.write(int(script_var[t[0]]).to_bytes(2, "big"))
             try:
-                out.write(int(script_var[coms[1]]).to_bytes(2, "big"))
+                out.write(int(script_var[coms[1].lower()]).to_bytes(2, "big"))
             except:
                 print(script_var)
                 print("\n\n\n------------------- ERROR------------------")
@@ -367,24 +417,33 @@ for script_file in glob.glob('novel\\script\\**\\*.scr', recursive=True):
             out.write(functions["fi"].to_bytes(1, "big"))
             pass
         elif c == "jump":
-            out.write(functions["jump"].to_bytes(1, "big"))
             t = line.replace("\t", "").replace("jump ", "", 1).lower().replace("\n", "").replace("/", "_").replace(".scr", "").split(" ")
-            key = t[0].replace("-", "_")
-            try:
-                out.write(scripts_dir[key].to_bytes(2, "big"))
-            except:
-                print(scripts_dir)
-                print("\n\n\n------------------- ERROR------------------")
-                print("\nThe jump \"" + key + "\" in script \"" + script_file + "\", line " + str(i+1) + " does not exists.")
-                exit()
-            if len(t) > 1:
-                num = int(script_label[key][t[1]])
-                out.write(num.to_bytes(4, "big", signed=True))
+            key = t[0].replace("-", "_").lower()
+            if (key[0] == "$"):
+                out.write(functions["retjump"].to_bytes(1, "big"))
             else:
-                out.write(int(0).to_bytes(4, "big", signed=True))
-                pass
-        elif c == "dealy":
-            print(line)
+                out.write(functions["jump"].to_bytes(1, "big"))
+                try:
+                    out.write(scripts_dir[key].to_bytes(2, "big"))
+                except:
+                    print(scripts_dir)
+                    print("\n\n\n------------------- ERROR------------------")
+                    print("\nThe jump \"" + key + "\" in script \"" + script_file + "\", line " + str(i+1) + " does not exists.")
+                    exit()
+                if len(t) > 1:
+                    num = int(script_label[key][t[1].lower()])
+                    out.write(num.to_bytes(4, "big", signed=True))
+                else:
+                    out.write(int(0).to_bytes(4, "big", signed=True))
+                    pass
+        elif c == "delay":
+            out.write(functions["delay"].to_bytes(1, "big"))
+            try:
+                out.write(int(coms[1]).to_bytes(2, "big", signed=True))
+            except:
+                print("\n\n\n------------------- ERROR------------------")
+                print("\nThe delay \"" + str(coms[1]) + "\" in script \"" + script_file + "\", line " + str(i+1) + " is too big.")
+                exit()
             pass
             
         elif c == "random":
@@ -455,4 +514,4 @@ if len(script_var) == 1:
     print("----------------------------")
     print("A Novel without Variables")
 
-print(script_var)
+#print(script_var)

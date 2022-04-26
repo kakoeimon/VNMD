@@ -54,12 +54,6 @@ s32 read_s32() {
     return d | c << 8 | b << 16 | a << 24;;
 }
 
-void clear_text() {
-    //static s16 novel_text_height = NOVEL_TEXT_BOTTOM - NOVEL_TEXT_TOP;
-    VDP_clearPlane(WINDOW, TRUE);
-    //VDP_clearTextArea(NOVEL_TEXT_LEFT, NOVEL_TEXT_TOP, NOVEL_TEXT_WIDTH, novel_text_height);
-}
-
 
 void novel_event_handler(u16 joy, u16 changed, u16 state) {
     if (joy == JOY_1) {
@@ -341,6 +335,8 @@ void novel_reset() {
 
     NOVEL.fore_pal = 1;
 
+    VDP_setTextPalette(PAL1);
+    PAL_setColor(31, RGB24_TO_VDPCOLOR(0xffffff));
     for (int i = 0; i < 3; i++) {
         NOVEL.fore_imgs[i] = MAX_S16;
     }
@@ -448,8 +444,17 @@ void novel_update() {
             int symbol = read_char();
             int num = read_int();
 
-            if (read_char() == 1) {
+            int type = read_char();
+            if (type == 1) { //IT is a Variable
                 num = NOVEL_VARIABLES[num];
+            } else if (type == 2) { //It is retfile to retfile
+                num = NOVEL_VARIABLES[num];
+            } else if (type == 3) { //It is scriptfile to retfile
+ 
+            } else if (type == 4) { //It is retlabel to retlabel
+                num = NOVEL_VARIABLES[num];
+            } else if (type == 5) { //It is label name to retlabel
+
             }
             switch (symbol)
             {
@@ -528,6 +533,18 @@ void novel_update() {
         }
         break;
     case 11: //DELAY
+        {
+            NOVEL.position++;
+            int delay = read_int();
+            for (int i = 0; i < delay; i++) {
+                if (NOVEL.advance) {
+                    i +=10;
+                }
+                SYS_doVBlankProcess();
+            }
+        }
+        
+        
         break;
     case 12: //RANDOM
         break;
@@ -547,6 +564,11 @@ void novel_update() {
         NOVEL.position++;
         novel_reset_vars();
 
+        break;
+    case 17: //RETJUMP this is when a line is like this: jump $RETFILE $RETLABEL
+        NOVEL.position++;
+        NOVEL.script_index = NOVEL_VARIABLES[NOVEL_RETFILE_INDEX];
+        NOVEL.position = NOVEL_VARIABLES[NOVEL_RETLABEL_INDEX];
         break;
     default:
 
