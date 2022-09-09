@@ -40,6 +40,7 @@ TEXT_LEFT 2
 TEXT_RIGHT 38
 COMPRESSION APLIB
 SAVE_CHECK 1123
+SOUND_DRV 2ADPCM
 ````
 If you installed ImageMagick find the convert.exe that it was installed with your ImageMagick and replace the full file path at MAGICK_CONVERT_PATH with yours. Additionally you can leave the path empty or pointing not to a file to use just PILLOW for the convertion of the graphics. But Image Magick gives much better quality.
 
