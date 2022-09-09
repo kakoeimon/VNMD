@@ -3,10 +3,12 @@
 #include "novel_functions.h"
 #include "novel_scripts.h"
 #include "novel_images.h"
+#include "novel_sounds.h"
 #include "novel_variables.h"
 
 char NOVEL_CHOICE_CHAR[1] = {'z' + 5};
 
+int NOVEL_ACTUAL_TEXT_TOP = NOVEL_TEXT_TOP;
 
 int bytes_to_int(int byte1, int byte2) {
     return byte2 | byte1 << 8;
@@ -61,8 +63,6 @@ void novel_event_handler(u16 joy, u16 changed, u16 state) {
             NOVEL.advance = TRUE;
         } else if (state & changed & BUTTON_START) {
             NOVEL.pause_menu = TRUE;
-            
-
         }
     }
 }
@@ -72,7 +72,11 @@ void novel_choice_event_handler(u16 joy, u16 changed, u16 state) {
         NOVEL_VARIABLES[0] -= 1;
     } else if (state & changed & BUTTON_DOWN) {
         NOVEL_VARIABLES[0] += 1;
-    }  else if (state & changed & BUTTON_B) {
+    } else if (state & changed & BUTTON_LEFT) {
+        NOVEL_VARIABLES[0] -= NOVEL_TEXT_BOTTOM - NOVEL_ACTUAL_TEXT_TOP;
+    } else if (state & changed & BUTTON_RIGHT) {
+        NOVEL_VARIABLES[0] += NOVEL_TEXT_BOTTOM - NOVEL_ACTUAL_TEXT_TOP;
+    } else if (state & changed & BUTTON_B) {
         NOVEL.selected = TRUE;
     } else if (state & changed & BUTTON_START) {
         NOVEL.pause_menu = TRUE;
@@ -108,13 +112,14 @@ void novel_pause_menu_set_cursor(int max_values) {
 
 int novel_get_save_index() {
     int base_length = 4 + NOVEL_NUM_GLOBAL_VARIABLES * 2;
-    int save_length = NOVEL_NUM_VARIABLES * 2 + 2 + 2 + 6 * 3 + 4 + 2;
+    int save_length = (NOVEL_NUM_VARIABLES * 2 + 2 + 2 + 6 * 3 + 4 + 2 + 2) * (NOVEL.pause_menu_pos + 1);
+    
     return base_length + save_length;
 }
 
 void novel_save() {
     int index = novel_get_save_index();
-
+    
     //draw_int(index, 2, 29); //I have no idea why, but if I delete this line the game crashes.
     clear_text();
     SYS_doVBlankProcess();
@@ -137,6 +142,8 @@ void novel_save() {
         SRAM_writeWord(index, NOVEL.fore_pos[i][1]);
         index +=2;
     }
+    SRAM_writeWord(index, NOVEL.music);
+    index +=2;
     
     for (int i = 0; i < NOVEL_NUM_VARIABLES; i++) {
         SRAM_writeWord(index + i*2, NOVEL_VARIABLES[i]);
@@ -151,6 +158,9 @@ void novel_save() {
 }
 
 void novel_load() {
+    novel_stop_music();
+    novel_stop_sound();
+    SYS_doVBlankProcess();
     int index = novel_get_save_index();
 
     //draw_int(index, 2, 29); //I have no idea why, but if I delete this line the game crashes.
@@ -176,7 +186,9 @@ void novel_load() {
              NOVEL.fore_pos[i][1] = SRAM_readWord(index);
             index +=2;
         }
-    
+        NOVEL.music = SRAM_readWord(index);
+        index +=2;
+
         for (int i = 0; i < NOVEL_NUM_VARIABLES; i++) {
             NOVEL_VARIABLES[i] = SRAM_readWord(index + i*2);
         }
@@ -188,6 +200,11 @@ void novel_load() {
                 draw_foreground(tmp_img[i], NOVEL.fore_pos[i][0], NOVEL.fore_pos[i][1]);
             }
         }
+        if (NOVEL.music != NOVEL_NO_MUSIC) {
+            NOVEL_PLAY_MUSIC[NOVEL.music]();
+        } else {
+            novel_stop_music();
+        }
         NOVEL.pause_menu = FALSE;
         
     } else {
@@ -197,16 +214,17 @@ void novel_load() {
             SYS_doVBlankProcess();
         }
     }
-
-
-    
-    
     
 }
 
 
 void novel_pause_menu() {
     if (NOVEL.pause_menu) {
+        //Stoping all sounds to protect z80
+        novel_stop_music();
+        novel_stop_sound();
+        SYS_doVBlankProcess();
+
         JOY_setEventHandler(novel_pause_event_handler);
         NOVEL.pause_menu_pos = 0;
         NOVEL.pause_menu_selected = FALSE;
@@ -240,13 +258,15 @@ void novel_pause_menu() {
                     SYS_doVBlankProcess();
                 }
                 if (NOVEL.pause_menu_selected) {
+                    SYS_doVBlankProcess();
                     novel_save();
                 }
                 NOVEL.pause_menu = FALSE;
+                if (NOVEL.music != NOVEL_NO_MUSIC) NOVEL_PLAY_MUSIC[NOVEL.music]();
             } else if (NOVEL.pause_menu_pos == 1) {
                 NOVEL.pause_menu_pos = 0;
                 clear_text();
-
+                
                 VDP_drawText("Load Slot 1", NOVEL_TEXT_LEFT+1, NOVEL_TEXT_TOP);
                 VDP_drawText("Load Slot 2", NOVEL_TEXT_LEFT+1, NOVEL_TEXT_TOP+1);
                 VDP_drawText("Load Slot 3", NOVEL_TEXT_LEFT+1, NOVEL_TEXT_TOP+2);
@@ -260,16 +280,17 @@ void novel_pause_menu() {
                 }
             } else if (NOVEL.pause_menu_pos == 2) {
                 NOVEL.pause_menu = FALSE;
-                novel_reset();
+                novel_reset(); //Just reset global save will be done only when th novel reach the end
+                //novel_save_n_restart(); //Just for testing the global vars
             }
         }
         
         //VDP_clearTextArea(NOVEL_TEXT_LEFT, NOVEL_TEXT_TOP, NOVEL_TEXT_WIDTH, NOVEL_TEXT_BOTTOM - NOVEL_TEXT_TOP);
         NOVEL.pause_menu = FALSE;
+        if (NOVEL.music != NOVEL_NO_MUSIC) NOVEL_PLAY_MUSIC[NOVEL.music]();
         clear_text();
         JOY_setEventHandler(novel_event_handler);
     }
-
     
 }
 
@@ -312,13 +333,7 @@ void novel_global_save() {
 
 void novel_save_n_restart() {
     novel_global_save();
-    novel_reset();
-    clear_text();
-    VDP_clearPlane(BG_A, TRUE);
-    SYS_doVBlankProcess();
-    VDP_clearPlane(BG_B, TRUE);
-    SYS_doVBlankProcess();
-    
+    novel_reset();    
 }
 
 void novel_reset_vars() {
@@ -331,8 +346,9 @@ void novel_reset_vars() {
 void novel_reset() {
     NOVEL.position = 0;
     NOVEL.script_index = 0;
-    NOVEL.back_index = -1;
-
+    NOVEL.back_index = 1;
+    NOVEL.music = NOVEL_NO_MUSIC;
+    
     NOVEL.fore_pal = 1;
 
     VDP_setTextPalette(PAL1);
@@ -350,9 +366,16 @@ void novel_reset() {
     JOY_setEventHandler(novel_event_handler);
 
     VDP_setWindowVPos(TRUE, NOVEL_TEXT_TOP);
+    
     VDP_setTextPlane(WINDOW);
 
     novel_reset_vars();
+    novel_stop_music();
+    clear_text();
+    VDP_clearPlane(BG_A, TRUE);
+    SYS_doVBlankProcess();
+    VDP_clearPlane(BG_B, TRUE);
+    SYS_doVBlankProcess();
 }
 
 
@@ -360,10 +383,28 @@ int make_choice(const char *bin) {
     int count = 2;
     NOVEL_VARIABLES[0] = 0;
     int number_of_choices = bin[0];
+    NOVEL_ACTUAL_TEXT_TOP = NOVEL_TEXT_TOP;
+    int double_row_start = NOVEL_TEXT_BOTTOM - NOVEL_ACTUAL_TEXT_TOP;
     bin++;
+    int new_lines = (number_of_choices - double_row_start * 2) / 2 + number_of_choices % 2;
+    if (new_lines < 0) new_lines = 0;
+    if (new_lines) {
+        double_row_start  += new_lines;
+        NOVEL_ACTUAL_TEXT_TOP -= new_lines;
+        VDP_setWindowVPos(TRUE, NOVEL_ACTUAL_TEXT_TOP);
+        VDP_clearTileMapRect(BG_B, NOVEL_BG_LEFT, NOVEL_ACTUAL_TEXT_TOP, NOVEL_BG_WIDTH, NOVEL_BG_TOP + NOVEL_BG_HEIGHT - NOVEL_ACTUAL_TEXT_TOP);
+
+        SYS_doVBlankProcess();
+    }
+
     for(int i = 0; i < number_of_choices; i++) {
         int len = strlen(bin) + 1;
-        VDP_drawText(bin, NOVEL_TEXT_LEFT + 1, NOVEL_TEXT_TOP + i);
+        if (i < double_row_start ) {
+            VDP_drawText(bin, NOVEL_TEXT_LEFT + 1, NOVEL_ACTUAL_TEXT_TOP + i);
+        } else {
+            VDP_drawText(bin, NOVEL_TEXT_LEFT + 18, NOVEL_ACTUAL_TEXT_TOP + i - double_row_start);
+        }
+        
         bin += len;
         count += len;
     }
@@ -376,14 +417,29 @@ int make_choice(const char *bin) {
             NOVEL_VARIABLES[0] = 0;
         }
         for (int i = 0; i < number_of_choices; i++) {
-            VDP_clearText(NOVEL_TEXT_LEFT, NOVEL_TEXT_TOP + i, 1);
+            if (i < double_row_start) {
+                VDP_clearText(NOVEL_TEXT_LEFT, NOVEL_ACTUAL_TEXT_TOP + i, 1);
+            } else {
+                VDP_clearText(NOVEL_TEXT_LEFT + 17, NOVEL_ACTUAL_TEXT_TOP + i - double_row_start, 1);
+            }
+            
         }
-        VDP_drawText(NOVEL_CHOICE_CHAR, NOVEL_TEXT_LEFT, NOVEL_TEXT_TOP + NOVEL_VARIABLES[0]);
+        if (NOVEL_VARIABLES[0] < double_row_start) {
+            VDP_drawText(NOVEL_CHOICE_CHAR, NOVEL_TEXT_LEFT, NOVEL_ACTUAL_TEXT_TOP + NOVEL_VARIABLES[0]);
+        } else {
+            VDP_drawText(NOVEL_CHOICE_CHAR, NOVEL_TEXT_LEFT + 17, NOVEL_ACTUAL_TEXT_TOP + NOVEL_VARIABLES[0] - double_row_start);
+        }
+        
         SYS_doVBlankProcess();
         if (NOVEL.pause_menu) {
             JOY_setEventHandler(novel_event_handler);
             clear_text();
             NOVEL.selected = FALSE;
+            if (new_lines) {
+                VDP_setTileMapEx(BG_B, NOVEL_BACKGROUND[NOVEL.back_index]->tilemap, TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, TILE_USERINDEX), NOVEL_BG_LEFT, NOVEL_ACTUAL_TEXT_TOP,  0,  NOVEL_BG_HEIGHT - new_lines, NOVEL_BG_WIDTH, new_lines, DMA_QUEUE);
+                NOVEL_ACTUAL_TEXT_TOP = NOVEL_TEXT_TOP;  
+                VDP_setWindowVPos(TRUE, NOVEL_TEXT_TOP);
+            }
             return 0;
         }
     }
@@ -391,6 +447,12 @@ int make_choice(const char *bin) {
     clear_text();
     NOVEL_VARIABLES[0] +=1;
     NOVEL.selected = FALSE;
+    if (new_lines) {
+        VDP_setTileMapEx(BG_B, NOVEL_BACKGROUND[NOVEL.back_index]->tilemap, TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, TILE_USERINDEX), NOVEL_BG_LEFT, NOVEL_ACTUAL_TEXT_TOP,  0,  NOVEL_BG_HEIGHT - new_lines, NOVEL_BG_WIDTH, new_lines, DMA_QUEUE);
+        NOVEL_ACTUAL_TEXT_TOP = NOVEL_TEXT_TOP;  
+        VDP_setWindowVPos(TRUE, NOVEL_TEXT_TOP);
+    }
+    
     return count;
 }
 
@@ -425,8 +487,36 @@ void novel_update() {
         draw_foreground(fore_index, x , y);
         break;
     case 2: //SOUND
+        {
+            NOVEL.position++;
+            int sound_pos = read_int();
+            int loop = read_char();
+            if (loop == 255) {
+                loop = 1;
+            } else {
+                loop = 0;
+            }
+            if(sound_pos == 32700) {
+                novel_stop_sound();
+            } else {
+                NOVEL_PLAY_SOUND[sound_pos](loop);
+            }
+        }
         break;
     case 3: //MUSIC
+        {
+            NOVEL.position++;
+            
+            int music_pos = read_int();
+            
+            if (music_pos == NOVEL_NO_MUSIC) {
+                novel_stop_music();
+            } else {
+                NOVEL_PLAY_MUSIC[music_pos]();
+            }
+            NOVEL.music = music_pos;
+            
+        }
         break;
     case 4: //TEXT
         {
@@ -508,7 +598,7 @@ void novel_update() {
             if (NOVEL_VARIABLES[variable] >= num) {
                 pass = TRUE;
             }
-        }  else if (eq == 4) { // <=
+        }  else if (eq == 5) { // <=
             if (NOVEL_VARIABLES[variable] <= num) {
                 pass = TRUE;
             }

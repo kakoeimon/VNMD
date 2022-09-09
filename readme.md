@@ -107,6 +107,7 @@ TEXT_LEFT 2
 TEXT_RIGHT 38
 COMPRESSION APLIB
 SAVE_CHECK 1123
+SOUND_DRV 2ADPCM
 ````
 * MAGICK_CONVERT_PATH is the path to the convert.exe if the path does not point to a file PILLOW will be used to convert the Images.
 * BG_WIDTH is the width you want the image to be in tiles (one tile is 8px)
@@ -121,6 +122,11 @@ SAVE_CHECK 1123
 * * FAST fast but sometimes buggy. Avoid.
 * * APLIB slow but good compression.
 * SAVE_CHECK This is just a number to help the program with the saving option change it to what ever you want as long it is bigger than 0 and smaller than 32767 also it may be better to use a number with more than two digits.
+* SOUND_DRV as sound driver you want to use. Consider reading the SGDK info about this. Also you have to put the sound fx in a directory name wav and the music in a directory name music. The options are.
+* * 2ADPCM
+* * 4PCM
+* * XGM
+* 
 
 
 ### So that's all... good luck in converting
@@ -128,11 +134,6 @@ Many VNDS Novels require work to make them run.
 
 
 ## TODO
-* Add music.
-* * Music files cannot be converted to MD's format but make the converter to check for an XGM file with the same name in the script to add and use it.
-
-* Add sounds.
-* * Sounds are not implemented right now cause all the novels have too many sounds a solution to pick some of them must be found.
 * Add random command
 * Add external_function command
 * * With an external function command we will have the ability to call C functions from the Script and get the control of the Novel.

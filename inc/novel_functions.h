@@ -3,6 +3,7 @@
 
 #include "genesis.h"
 
+#define NOVEL_NO_MUSIC 1600
 
 typedef struct Novel_ {
     s32 position;
@@ -10,6 +11,7 @@ typedef struct Novel_ {
     s16 back_index;
     s16 fore_index;
     s16 fore_pal;
+    s16 music;
     s16 selected;
     s16 advance;
     s16 pause_menu;

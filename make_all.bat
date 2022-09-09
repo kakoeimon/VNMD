@@ -1,5 +1,6 @@
 python convert_images.py
 python create_image_res.py
+python create_sound_res.py
 python convert_scripts.py
 c:\sgdk\bin\make -f c:\sgdk\makefile.gen
 

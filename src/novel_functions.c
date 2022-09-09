@@ -38,12 +38,13 @@ void draw_background(int index, int fade_time) {
 
         SYS_doVBlankProcess();
         SYS_doVBlankProcess();
-        //PAL_setPalette(PAL0, palette_black, DMA);
+        //PAL_setPalette(PAL0, palette_black, CPU);
+
         VDP_loadTileSet(img->tileset,TILE_USERINDEX, DMA_QUEUE);
         
-        
-        //SYS_doVBlankProcess();
-        
+        //for (int i =0; i < 60; i++) SYS_doVBlankProcess();
+
+
         NOVEL.back_index = index;
         VDP_setTileMapEx(BG_B, img->tilemap, TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, TILE_USERINDEX), NOVEL_BG_LEFT, NOVEL_BG_TOP,  0, 0, NOVEL_BG_WIDTH, NOVEL_BG_HEIGHT, DMA_QUEUE);
         PAL_setPalette(PAL0, img->palette->data, DMA_QUEUE);
@@ -64,8 +65,8 @@ void draw_background(int index, int fade_time) {
 
 void draw_foreground(int index, int x, int y) {
     const Image *img = NOVEL_FOREGROUND[index];
-    int s_x = NOVEL_FOREGROUND_SIZE[index][0];
-    int s_y = NOVEL_FOREGROUND_SIZE[index][1];
+    int s_x = img->tilemap->w;
+    int s_y = img->tilemap->h;
     SYS_doVBlankProcess();
     VDP_loadTileSet(img->tileset,NOVEL.fore_index, DMA_QUEUE);
     SYS_doVBlankProcess();
@@ -81,6 +82,7 @@ void draw_foreground(int index, int x, int y) {
         NOVEL.fore_pal = NOVEL_FORE_PAL_START;
     }
     NOVEL.fore_index += img->tileset->numTile;
+    VDP_loadFont(&font_default, DMA);
     SYS_doVBlankProcess();
 }
 

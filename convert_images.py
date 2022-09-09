@@ -3,10 +3,8 @@ from sre_parse import FLAGS
 import subprocess
 import glob
 from PIL import Image
-import PIL
 import sys
-
-from numpy import append
+import pathlib
 
 ##########################################
 ini = open("novel.ini")
@@ -46,38 +44,20 @@ bg_height *= 8
 
 alpha_color = [255, 0, 255]
 
-if not os.path.exists('res'):
-    os.mkdir('res')
-
-if not os.path.exists('res/background'):
-    os.mkdir('res/background')
-for d in glob.glob("novel\\background\\**\\*\\", recursive = True):
-    d = d.replace("novel", "res", 1)
-    if not os.path.exists(d):
-        os.mkdir(d)
-
-if not os.path.exists('res/foreground'):
-    os.mkdir('res/foreground')
-for d in glob.glob("novel\\foreground\\**\\*\\", recursive = True):
-    d = d.replace("novel", "res", 1)
-    if not os.path.exists(d):
-        os.mkdir(d)
+def mk_dirtrees(file_name:str):
+    pathlib.Path(os.path.dirname(file_name)).mkdir(parents=True, exist_ok=True)
 
 
-if not os.path.exists('res/script'):
-    os.mkdir('res/script')
-for d in glob.glob("novel\\script\\**\\*\\", recursive = True):
-    d = d.replace("novel", "res", 1)
-    if not os.path.exists(d):
-        os.mkdir(d)
 def scale_n_save_bg(image_file):
     img = Image.open(image_file)
     scaled = img.resize([bg_width, bg_height])
+    mk_dirtrees(image_file)
     scaled.save(image_file)
 
 def scale_n_save_fg(image_file):
     img = Image.open(image_file)
     scaled = img.resize([int(img.size[0] * img_scale), int(img.size[1] * img_scale)])
+    mk_dirtrees(image_file)
     scaled.save(image_file)
 
 
@@ -91,6 +71,7 @@ def crop_n_save(image_file):
     else:
         dif = img.size[1] - y
         cropped = img.crop((4,dif,x,y + dif))
+    mk_dirtrees(image_file)
     cropped.save(image_file)
 
 def reduce_colors_convert(img_file, num_colors):
@@ -247,9 +228,10 @@ def check_back_size(img_file):
 def convert_images():
         
     for background in glob.glob('novel\\background\\**\\*.jpg', recursive=True):
-        out = background.replace('novel\\', 'res\\').replace('.jpg', '.png').replace("-", "_").replace("~", "_").lower()
+        out = background.replace('novel\\', 'res\\').replace('.jpg', '.png').lower()
         print(out)
         img = Image.open(background).convert("RGBA")
+        mk_dirtrees(out)
         img.save(out)
 
         if(img_scale != 1.0):
@@ -258,9 +240,10 @@ def convert_images():
         check_colors(out)
 
     for background in glob.glob('novel\\background\\**\\*.png', recursive=True):
-        out = background.replace('novel\\', 'res\\').lower().replace("-", "_").replace("~", "_")
+        out = background.replace('novel\\', 'res\\').lower()
         print(out)
         img = Image.open(background).convert("RGB")
+        mk_dirtrees(out)
         img.save(out)
 
         if(img_scale != 1.0):
@@ -269,24 +252,19 @@ def convert_images():
         check_colors(out)
     
     for foreground in glob.glob('novel\\foreground\\**\\*.png', recursive=True):
-        out = foreground.replace('novel\\', 'res\\').lower().replace("-", "_").replace("~", "_")
+        out = foreground.replace('novel\\', 'res\\').lower()
         
         img = Image.open(foreground).convert("RGBA")
+        mk_dirtrees(out)
         img.save(out)
         print(out)
         if(img_scale != 1.0):
-            scale_n_save_bg(out)
+            scale_n_save_fg(out)
         crop_n_save(out)
         replace_alpha(out)
         check_colors(out)
 
     
-
-
-
-
-        
-
 
 if len(sys.argv) > 1:
     d = False
@@ -309,7 +287,7 @@ if len(sys.argv) > 1:
         img.save(out)
 
         if(img_scale != 1.0):
-            scale_n_save_bg(out)
+            scale_n_save_fg(out)
         crop_n_save(out)
         replace_alpha(out)
         check_colors(out)

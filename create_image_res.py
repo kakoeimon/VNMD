@@ -58,7 +58,6 @@ images_h.write("#define NOVEL_BG_LEFT " + str(int(bg_left)) + "\n\n")
 
 images_h.write("extern const Image *NOVEL_BACKGROUND[];\n")
 images_h.write("extern const Image *NOVEL_FOREGROUND[];\n")
-images_h.write("extern const int NOVEL_FOREGROUND_SIZE[][2];\n")
 
 images_h.write("\n#endif")
 
@@ -66,37 +65,24 @@ images_h.write("\n#endif")
 images_c.write("#include \"novel_images.h\"\n\n")
 images_c.write("const Image *NOVEL_BACKGROUND[] = {\n")
 
-
-for background in glob.glob('novel\\background\\**\\*.jpg', recursive=True):
-    _id = background.replace('novel\\', "").replace('\\', '_').replace(".jpg", "").lower().replace("-", "_").replace("~", "_").replace(".", "_")
-    novel_res.write("IMAGE " + _id + " " + background.replace('novel\\', "").replace(".jpg", ".png").replace("-", "_") + " " + compression + "\n")
-    images_c.write("\t&" + _id + ",\n")
-for background in glob.glob('novel\\background\\**\\*.png', recursive=True):
-    _id = background.replace('novel\\', "").replace('\\', '_').replace(".png", "").lower().replace("-", "_").replace("~", "_").replace(".", "_")
-    novel_res.write("IMAGE " + _id + " " + background.replace('novel\\', "").replace("-", "_") + " " + compression + "\n")
+bg_num = 0
+for background in glob.glob('res\\background\\**\\*.png', recursive=True):
+    bg_num +=1
+    _id = "bg_" + str(bg_num)
+    novel_res.write("IMAGE " + _id + " " + background.replace('res\\', "") + " " + compression + "\n")
     images_c.write("\t&" + _id + ",\n")
 images_c.write("};\n\n")
+novel_res.write("\n\n")
 
-#for background in glob.glob('res\\background\\**\\*.png', recursive=True):
-#    _id = background.replace('res\\', "").replace('\\', '_').replace(".png", "")
-#    novel_res.write("IMAGE " + _id + " " + background.replace('res\\', "") + " " + compression + "\n")
-#    images_c.write("\t&" + _id + ",\n")
-#images_c.write("};\n\n")
-count = 0
-for foreground in glob.glob('res\\foreground\\**\\*.png', recursive=True):
-    count +=1
-
-images_c.write("const Image *NOVEL_FOREGROUND[" + str(count) + "] = {\n")
+images_c.write("const Image *NOVEL_FOREGROUND[] = {\n")
 foreground_size = []
+fg_num = 0
 for foreground in glob.glob('res\\foreground\\**\\*.png', recursive=True):
-    _id = foreground.replace('res\\', "").replace('\\', '_').replace(".png", "").lower().replace("-", "_").replace("~", "_").replace(".", "_")
+    fg_num +=1
+    _id = "fg_" + str(fg_num)
     novel_res.write("IMAGE " + _id + " " + foreground.replace('res\\', "") + " " + compression + "\n")
     images_c.write("\t&" + _id + ",\n")
     foreground_size.append(Image.open(foreground).size)
 images_c.write("};\n\n")
 
-images_c.write("const int NOVEL_FOREGROUND_SIZE[" + str(count) + "][2] = {\n")
-for size in foreground_size:
-    images_c.write("\t{" + str(int(size[0] / 8)) + ", " + str(int(size[1] / 8)) + "},\n",)
-images_c.write("};\n\n")
 novel_res.close()
