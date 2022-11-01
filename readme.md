@@ -129,19 +129,36 @@ SOUND_DRV 2ADPCM
 * * XGM
 * 
 
-* * String Vars
+### String Vars
 * VNDS can have string vars that can be used inside the text or as vars that hold script files or labels
 * VNMD can have string vars but you cannot use them inside the text.
 * String vars can be script files or labels (labels can be only labels of the working file)
 
 * e.g.
-* setvar retfile = "office.scr" (you can add any existing .scr file)
-* jump $retfile  (when you jump with string vars you can only use string vars for labels or nothing)
+setvar retfile = "office.scr" (you can add any existing .scr file)
+jump $retfile  (when you jump with string vars you can only use string vars for labels or nothing)
 
 * e.g.
-* setvar retfile2 = "main.scr"
-* setvar retlabel2 = "second_day" (this will work only if it is written in the main.scr and the main.scr have a label second_day)
-* jump $retfile2 $retlabel2
+setvar retfile2 = "main.scr"
+setvar retlabel2 = "second_day" (this will work only if it is written in the main.scr and the main.scr have a label second_day)
+jump $retfile2 $retlabel2
+
+### Extra Commans
+#### ifcoice
+* ifchoice is a new command that exists only in VNMD and not in VNDS.
+    it is similar to choice but it performs checks to make the choices visible.
+    e.g.
+    ifchoice knows: I know about the key| knows == 0: Where is the key|Nevermind
+    * explanation
+        knows is a variable that was declared with setvar
+        ifchoice will check variables before the : and will display the choice only if the comparison is valid
+        for example if knows is 0
+        "I know about the key" is not going to be displayed (when checking without a symbol it is like you written != 0)
+        "Where is the key" is going to be displayed
+        "Nevermind" is going to be displayed every time cause there is no check for it.
+    *  You can use all the comparisons. like == , != , > , < , >= , <= and you can use variables for the right hand too.
+
+    
 
 ### So that's all... good luck in converting
 Many VNDS Novels require work to make them run.

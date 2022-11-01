@@ -436,7 +436,7 @@ int make_choice(const char *bin) {
             clear_text();
             NOVEL.selected = FALSE;
             if (new_lines) {
-                VDP_setTileMapEx(BG_B, NOVEL_BACKGROUND[NOVEL.back_index]->tilemap, TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, TILE_USERINDEX), NOVEL_BG_LEFT, NOVEL_ACTUAL_TEXT_TOP,  0,  NOVEL_BG_HEIGHT - new_lines, NOVEL_BG_WIDTH, new_lines, DMA_QUEUE);
+                VDP_setTileMapEx(BG_B, NOVEL_BACKGROUND[NOVEL.back_index]->tilemap, TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, TILE_USER_INDEX), NOVEL_BG_LEFT, NOVEL_ACTUAL_TEXT_TOP,  0,  NOVEL_BG_HEIGHT - new_lines, NOVEL_BG_WIDTH, new_lines, DMA_QUEUE);
                 NOVEL_ACTUAL_TEXT_TOP = NOVEL_TEXT_TOP;  
                 VDP_setWindowVPos(TRUE, NOVEL_TEXT_TOP);
             }
@@ -448,7 +448,7 @@ int make_choice(const char *bin) {
     NOVEL_VARIABLES[0] +=1;
     NOVEL.selected = FALSE;
     if (new_lines) {
-        VDP_setTileMapEx(BG_B, NOVEL_BACKGROUND[NOVEL.back_index]->tilemap, TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, TILE_USERINDEX), NOVEL_BG_LEFT, NOVEL_ACTUAL_TEXT_TOP,  0,  NOVEL_BG_HEIGHT - new_lines, NOVEL_BG_WIDTH, new_lines, DMA_QUEUE);
+        VDP_setTileMapEx(BG_B, NOVEL_BACKGROUND[NOVEL.back_index]->tilemap, TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, TILE_USER_INDEX), NOVEL_BG_LEFT, NOVEL_ACTUAL_TEXT_TOP,  0,  NOVEL_BG_HEIGHT - new_lines, NOVEL_BG_WIDTH, new_lines, DMA_QUEUE);
         NOVEL_ACTUAL_TEXT_TOP = NOVEL_TEXT_TOP;  
         VDP_setWindowVPos(TRUE, NOVEL_TEXT_TOP);
     }
@@ -456,6 +456,147 @@ int make_choice(const char *bin) {
     return count;
 }
 
+
+
+int make_ifchoice() {
+    s32 current_novel_position = NOVEL.position;
+    NOVEL_VARIABLES[0] = 0;
+    read_char();
+    int number_of_choices = read_char();
+    ifchoice *choices = MEM_alloc(number_of_choices * sizeof(ifchoice));
+    NOVEL_ACTUAL_TEXT_TOP = NOVEL_TEXT_TOP;
+    int double_row_start = NOVEL_TEXT_BOTTOM - NOVEL_ACTUAL_TEXT_TOP;
+    //read_char();
+    int actual_number_of_choices = 0;
+    for (int i = 0; i < number_of_choices; i++) {
+        int type = read_char();
+        int right_hand_type = read_char();
+        int var_num = read_int();
+        int num = read_int();
+        int symbol = read_char();
+        choices[i].pos = i;
+        choices[i].text = get_pos();
+        NOVEL.position += strlen(choices[i].text) + 1;
+        if (type == 0) {
+            actual_number_of_choices +=1;
+            choices[i].display = TRUE;
+        } else {
+            int left_hand = NOVEL_VARIABLES[var_num];
+            int right_hand = num;
+            if (right_hand_type == 1) {
+                right_hand = NOVEL_VARIABLES[num];
+            }
+            switch (symbol)
+            {
+            case 0:
+                choices[i].display = left_hand == right_hand;
+                break;
+            case 1:
+                choices[i].display = left_hand != right_hand;
+                break;
+            case 2:
+                choices[i].display = left_hand > right_hand;
+                break;
+            case 3:
+                choices[i].display = left_hand < right_hand;
+                break;
+            case 4:
+                choices[i].display = left_hand >= right_hand;
+                break;
+            case 5:
+                choices[i].display = left_hand <= right_hand;
+                break;
+            default:
+                break;
+            }
+
+            if (choices[i].display) {
+                actual_number_of_choices +=1;
+            }
+            
+        }
+        
+    }
+    int *actual_choices = MEM_alloc(actual_number_of_choices * sizeof(int));
+    int count = 0;
+    for (int i = 0; i < number_of_choices; i++) {
+        if (choices[i].display) {
+            actual_choices[count] = choices[i].pos;
+            count +=1;
+        }
+    }
+    int new_lines = (actual_number_of_choices - double_row_start * 2) / 2 + actual_number_of_choices % 2;
+    if (new_lines < 0) new_lines = 0;
+    if (new_lines) {
+        double_row_start  += new_lines;
+        NOVEL_ACTUAL_TEXT_TOP -= new_lines;
+        VDP_setWindowVPos(TRUE, NOVEL_ACTUAL_TEXT_TOP);
+        VDP_clearTileMapRect(BG_B, NOVEL_BG_LEFT, NOVEL_ACTUAL_TEXT_TOP, NOVEL_BG_WIDTH, NOVEL_BG_TOP + NOVEL_BG_HEIGHT - NOVEL_ACTUAL_TEXT_TOP);
+
+        SYS_doVBlankProcess();
+    }
+
+    int draw_choice_pos = 0;
+    for(int i = 0; i < number_of_choices; i++) {
+        if (choices[i].display) {
+            if (draw_choice_pos < double_row_start ) {
+                VDP_drawText(choices[i].text, NOVEL_TEXT_LEFT + 1, NOVEL_ACTUAL_TEXT_TOP + draw_choice_pos);
+            } else {
+                VDP_drawText(choices[i].text, NOVEL_TEXT_LEFT + 18, NOVEL_ACTUAL_TEXT_TOP + draw_choice_pos - double_row_start);
+            }
+            draw_choice_pos +=1;
+        }
+    }
+    JOY_setEventHandler(novel_choice_event_handler);
+    while (!NOVEL.selected)
+    {
+        if (NOVEL_VARIABLES[0] < 0) {
+            NOVEL_VARIABLES[0] = actual_number_of_choices - 1;
+        } else if (NOVEL_VARIABLES[0] >= actual_number_of_choices) {
+            NOVEL_VARIABLES[0] = 0;
+        }
+        for (int i = 0; i < actual_number_of_choices; i++) {
+            if (i < double_row_start) {
+                VDP_clearText(NOVEL_TEXT_LEFT, NOVEL_ACTUAL_TEXT_TOP + i, 1);
+            } else {
+                VDP_clearText(NOVEL_TEXT_LEFT + 17, NOVEL_ACTUAL_TEXT_TOP + i - double_row_start, 1);
+            }
+            
+        }
+        if (NOVEL_VARIABLES[0] < double_row_start) {
+            VDP_drawText(NOVEL_CHOICE_CHAR, NOVEL_TEXT_LEFT, NOVEL_ACTUAL_TEXT_TOP + NOVEL_VARIABLES[0]);
+        } else {
+            VDP_drawText(NOVEL_CHOICE_CHAR, NOVEL_TEXT_LEFT + 17, NOVEL_ACTUAL_TEXT_TOP + NOVEL_VARIABLES[0] - double_row_start);
+        }
+        
+        SYS_doVBlankProcess();
+        if (NOVEL.pause_menu) {
+            JOY_setEventHandler(novel_event_handler);
+            clear_text();
+            NOVEL.selected = FALSE;
+            if (new_lines) {
+                VDP_setTileMapEx(BG_B, NOVEL_BACKGROUND[NOVEL.back_index]->tilemap, TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, TILE_USER_INDEX), NOVEL_BG_LEFT, NOVEL_ACTUAL_TEXT_TOP,  0,  NOVEL_BG_HEIGHT - new_lines, NOVEL_BG_WIDTH, new_lines, DMA_QUEUE);
+                NOVEL_ACTUAL_TEXT_TOP = NOVEL_TEXT_TOP;  
+                VDP_setWindowVPos(TRUE, NOVEL_TEXT_TOP);
+            }
+            MEM_free(choices);
+            MEM_free(actual_choices);
+            return current_novel_position;
+        }
+    }
+    JOY_setEventHandler(novel_event_handler);
+    clear_text();
+    NOVEL_VARIABLES[0] = actual_choices[NOVEL_VARIABLES[0]] + 1;
+    NOVEL.selected = FALSE;
+    if (new_lines) {
+        VDP_setTileMapEx(BG_B, NOVEL_BACKGROUND[NOVEL.back_index]->tilemap, TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, TILE_USER_INDEX), NOVEL_BG_LEFT, NOVEL_ACTUAL_TEXT_TOP,  0,  NOVEL_BG_HEIGHT - new_lines, NOVEL_BG_WIDTH, new_lines, DMA_QUEUE);
+        NOVEL_ACTUAL_TEXT_TOP = NOVEL_TEXT_TOP;  
+        VDP_setWindowVPos(TRUE, NOVEL_TEXT_TOP);
+    }
+    MEM_free(choices);
+    MEM_free(actual_choices);
+    return NOVEL.position;
+}
 
 
 
@@ -537,15 +678,8 @@ void novel_update() {
             int type = read_char();
             if (type == 1) { //IT is a Variable
                 num = NOVEL_VARIABLES[num];
-            } else if (type == 2) { //It is retfile to retfile
-                num = NOVEL_VARIABLES[num];
-            } else if (type == 3) { //It is scriptfile to retfile
- 
-            } else if (type == 4) { //It is retlabel to retlabel
-                num = NOVEL_VARIABLES[num];
-            } else if (type == 5) { //It is label name to retlabel
-
             }
+            
             switch (symbol)
             {
             case 0:
@@ -563,6 +697,7 @@ void novel_update() {
 
 
         }
+        //SYS_doVBlankProcess();
         //novel_update();
         break;
     case 7: //GSETVAR
@@ -656,9 +791,37 @@ void novel_update() {
 
         break;
     case 17: //RETJUMP this is when a line is like this: jump $RETFILE $RETLABEL
-        NOVEL.position++;
-        NOVEL.script_index = NOVEL_VARIABLES[NOVEL_RETFILE_INDEX];
-        NOVEL.position = NOVEL_VARIABLES[NOVEL_RETLABEL_INDEX];
+        {
+            NOVEL.position++;
+
+            int type = read_char();
+            int retfile = read_int();
+            int retlabel = read_int();
+
+            NOVEL.script_index = NOVEL_VARIABLES[retfile];
+            if (type == 0) {
+                
+                NOVEL.position = NOVEL_VARIABLES[retlabel];
+            } else {
+                NOVEL.position = 0;
+            }
+            
+            
+            SYS_doVBlankProcess();
+        }
+        
+        /*
+        char str[3];
+        intToStr(NOVEL.script_index, str,3);
+        VDP_drawText(str, 3, 26);
+        for (int i = 0; i < 100; i++) {
+            SYS_doVBlankProcess();
+        }
+        */
+        //novel_update();
+        break;
+    case 18: //ifchoice
+        NOVEL.position = make_ifchoice();
         break;
     default:
 
