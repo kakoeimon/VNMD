@@ -129,9 +129,25 @@ SOUND_DRV 2ADPCM
 * * XGM
 * 
 
+* * String Vars
+* VNDS can have string vars that can be used inside the text or as vars that hold script files or labels
+* VNMD can have string vars but you cannot use them inside the text.
+* String vars can be script files or labels (labels can be only labels of the working file)
+
+* e.g.
+* setvar retfile = "office.scr" (you can add any existing .scr file)
+* jump $retfile  (when you jump with string vars you can only use string vars for labels or nothing)
+
+* e.g.
+* setvar retfile2 = "main.scr"
+* setvar retlabel2 = "second_day" (this will work only if it is written in the main.scr and the main.scr have a label second_day)
+* jump $retfile2 $retlabel2
 
 ### So that's all... good luck in converting
 Many VNDS Novels require work to make them run.
+
+### Updating SGDK
+If you update SGDK be sure to delete the boot dir inside the scr dir, otherwise the project will not compile.
 
 
 ## TODO
