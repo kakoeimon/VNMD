@@ -699,6 +699,7 @@ void novel_update() {
         }
         //SYS_doVBlankProcess();
         //novel_update();
+        return;
         break;
     case 7: //GSETVAR
         break;
@@ -744,9 +745,11 @@ void novel_update() {
             NOVEL.position += read_int() - 2;
         }
         //novel_update();
+        return;
         break;
     case 9: //FI
         NOVEL.position++;
+        return;
         //novel_update();
         break;
     case 10: //JUMP
@@ -755,6 +758,7 @@ void novel_update() {
             int new_script_index = read_int();
             NOVEL.position = read_s32();
             NOVEL.script_index = new_script_index;
+            return;
         }
         break;
     case 11: //DELAY
@@ -809,16 +813,6 @@ void novel_update() {
             
             SYS_doVBlankProcess();
         }
-        
-        /*
-        char str[3];
-        intToStr(NOVEL.script_index, str,3);
-        VDP_drawText(str, 3, 26);
-        for (int i = 0; i < 100; i++) {
-            SYS_doVBlankProcess();
-        }
-        */
-        //novel_update();
         break;
     case 18: //ifchoice
         NOVEL.position = make_ifchoice();

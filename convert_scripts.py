@@ -463,11 +463,29 @@ for script_file in glob.glob('novel\\script\\**\\*.scr', recursive=True):
                 print(line)
                 exit()
             coms[3] = coms[3].replace(":", "") #Using : makes it easier to right if selections cause it behaves like python in the vscode
+            print(coms)
             if coms[3].isnumeric():
                 out.write(int(coms[3]).to_bytes(2, "big"))
                 out.write((0).to_bytes(1, "big"))
+            elif '"' in coms[3]:
+                key = coms[3].replace('"', "").replace(".scr", "").strip()
+                print(key)
+                try:
+                    out.write(int(scripts_dir[key]).to_bytes(2, "big"))
+                except:
+                    print(script_var)
+                    print("\n\n\n------------------- ERROR------------------")
+                    print("The .scr " + coms[3] + " in script \"" + script_file + "\", line " + str(i+1) + " does not exists")
+                    exit()
+                out.write((0).to_bytes(1, "big"))
             else:
-                out.write(int(script_var[coms[3]]).to_bytes(2, "big"))
+                try:
+                    out.write(int(script_var[coms[3]]).to_bytes(2, "big"))
+                except:
+                    print(script_var)
+                    print("\n\n\n------------------- ERROR------------------")
+                    print("The var " + coms[3] + " in script \"" + script_file + "\", line " + str(i+1) + " does not exists")
+                    exit()
                 out.write((1).to_bytes(1, "big"))
             try:
                 out.write(count_to_fi(lines, i+1, 0).to_bytes(2, "big"))
@@ -592,19 +610,42 @@ for script_file in glob.glob('novel\\script\\**\\*.scr', recursive=True):
                                 exit()
                             out.write(int(parts[2].strip()).to_bytes(2, "big"))
                         else:
-                            out.write((1).to_bytes(1, "big"))
-                            try:
-                                out.write(script_var[parts[0].strip()].to_bytes(2, "big"))
-                            except:
-                                print("\n\n\n------------------- ERROR------------------")
-                                print("\nThe var in ifchoice \"" + parts[2] + "\" in script \"" + script_file + "\", line " + str(i+1) + " does not exists.")
-                                exit()
-                            try:
-                                out.write(script_var[parts[2].strip()].to_bytes(2, "big"))
-                            except:
-                                print("\n\n\n------------------- ERROR------------------")
-                                print("\nThe var in ifchoice \"" + parts[2] + "\" in script \"" + script_file + "\", line " + str(i+1) + " does not exists.")
-                                exit()
+                            
+                            if '"' in parts[2]: #It is a script file... srcipt labels are no accepted
+                                out.write((0).to_bytes(1, "big"))
+                                try:
+                                    out.write(int(script_var[parts[0].strip()]).to_bytes(2, "big"))
+                                except:
+                                    print("\n\n\n------------------- ERROR------------------")
+                                    print("\nThe var in ifchoice \"" + parts[2] + "\" in script \"" + script_file + "\", line " + str(i+1) + " does not exists.")
+                                    exit()
+                                scr = parts[2].lower().replace(".scr", "").replace('"', "").strip()
+                                print(scr)
+                                print(parts)
+                                print(scripts_dir[scr])
+                                print(scripts_dir)
+                                
+                                try:
+                                    out.write(int(scripts_dir[scr]).to_bytes(2, "big"))
+                                except:
+                                    print(scripts_dir)
+                                    print("\n\n\n------------------- ERROR------------------")
+                                    print("The ifchoice .scr " + parts[2] + " in script \"" + script_file + "\", line " + str(i+1) + " does not exists")
+                                    exit()
+                            else:
+                                out.write((1).to_bytes(1, "big"))
+                                try:
+                                    out.write(int(script_var[parts[0].strip()]).to_bytes(2, "big"))
+                                except:
+                                    print("\n\n\n------------------- ERROR------------------")
+                                    print("\nThe var in ifchoice \"" + parts[2] + "\" in script \"" + script_file + "\", line " + str(i+1) + " does not exists.")
+                                    exit()
+                                try:
+                                    out.write(int(script_var[parts[2].strip()]).to_bytes(2, "big"))
+                                except:
+                                    print("\n\n\n------------------- ERROR------------------")
+                                    print("\nThe var in ifchoice \"" + parts[2] + "\" in script \"" + script_file + "\", line " + str(i+1) + " does not exists.")
+                                    exit()
                         comp = parts[1].strip()
                         if comp == "==":
                             out.write((0).to_bytes(1, "big"))
