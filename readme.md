@@ -1,4 +1,4 @@
-# VNMD early version
+# VNMD
 
 **VNMD** is a tool for converting [VNDS](https://github.com/BASLQC/vnds) Visual Novels to a rom (.bin) to be used on **Sega Mega Drive** thanks to [SGDK](https://github.com/Stephane-D/SGDK).
 
@@ -149,14 +149,16 @@ SOUND_DRV 2ADPCM
         fi
 
 ### Extra Commans
-#### ifcoice
+### ifcoice
 * ifchoice is a new command that exists only in VNMD and not in VNDS.
-    it is similar to choice but it performs checks to make the choices visible.
+it is similar to choice but it performs checks to make the choices visible.
+
         ifchoice knows: I know about the key| knows == 0: Where is the key|Nevermind
     explanation:
+
         "knows" is a variable that was declared with setvar
         ifchoice will check variables before the : and will display the choice only if the comparison is valid
-        for example if knows is 0
+        for example if "knows" is 0
         "I know about the key" is not going to be displayed (when checking without a symbol it is like you written != 0)
         "Where is the key" is going to be displayed
         "Nevermind" is going to be displayed every time cause there is no check for it.
@@ -164,8 +166,10 @@ SOUND_DRV 2ADPCM
     You can use all the comparisons. like == , != , > , < , >= , <= and you can use variables for the right hand too.
     
     String vars can be used here too also strings as a right hand value and a script file
+
         ifchoice refile == "cabinet.scr":Try the Key|Back
 
+    Next you can use selected like it was a simple choice command.
     
 
 ### So that's all... good luck in converting
