@@ -1,0 +1,5 @@
+#ifndef _RES_NOVEL_SOUNDS_RES_H_
+#define _RES_NOVEL_SOUNDS_RES_H_
+
+
+#endif // _RES_NOVEL_SOUNDS_RES_H_

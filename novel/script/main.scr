@@ -1,7 +1,18 @@
-bgload black
+bgload black 60
+text It was too dark to see anything.
+label make_a_choice
+choice Look around.|Inventory
+if selected == 1:
+    text He tried to see, but darness prevailed.
+    goto make_a_choice
+fi
+if selected == 2:
+    ret_jump_store
+    jump inventory
+    text So you have nothing.
+fi
 
-text a simple main
-
-choice restart
-
-
+setimg character 128 0
+text Ha... you have nothing!
+fr_clear
+text and it is dark again.

@@ -12,4 +12,5 @@ void (*nv_external_functions[])() = {
 	fade_out,
 	ret_jump_store,
 	ret_return,
+	fr_clear,
 };

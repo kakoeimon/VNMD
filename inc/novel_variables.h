@@ -17,9 +17,11 @@ extern int NOVEL_VARIABLES[];
 
 //FILES
 #define NFILE_main 0
+#define NFILE_inventory 1
 
 
 //LABELS
+#define NLABEL_main_make_a_choice 39
 
 
 

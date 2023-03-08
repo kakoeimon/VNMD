@@ -1,0 +1,1 @@
+out/res/novel_sounds_res.o: res/novel_sounds_res.res

@@ -27,3 +27,7 @@ void ret_return() {
     NOVEL.script_index = NVAR_retfile;
     NOVEL.position = NVAR_retlabel;
 }
+
+void fr_clear() {
+    novel_draw_background(NOVEL.back_index, 0);
+}

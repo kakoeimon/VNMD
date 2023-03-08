@@ -1,0 +1,2 @@
+text You have nothing.
+jump $retfile $retlabel

@@ -3,13 +3,14 @@ VNDS .scr file format:
 for any clarification on the usage of these, look at a .scr from another VN
 
 bgload:
-    usage: bgload file [fadetime]
+    usage: bgload file [delay]
     looks in background/ for the image and draws it as the background
-    control length of fade in frames with fadetime (default 16)
+    control length of the delay in frames with background will be displayed before proceeding to the script (default 0)
     
 setimg:
     usage: setimg file x y
     looks in foreground/ for the image and draws it at the point (x,y)
+    the x y values must be the MegaDrive values not the scaled ones.
 
 sound:
     usage: sound file times
@@ -29,13 +30,21 @@ text:
     usage: text string
     displays text to the screen.
     
-    Prepending string with @ makes it not require clicking to advance
-    if string is ~, it`ll make a blank line
-    if string is !, it`ll make a blank line and require clicking to advance
+    if string is !, it`ll make a blank text with an ! at the bottom right and require clicking to advance
     
 choice:
     usage: choice option1|option2|etc...
     displays choices on the screen
+    
+    when a choice is clicked, selected is set to the value of what was
+        selected, starting at 1.
+    use if selected == 1, etc to go off what was selected.
+
+ifchoice:
+    usage: choice var1 == 1:option1|option2|etc...
+    displays choices on the screen but if the condition is true.
+    in this case if the variable var1 is 1 then option1 will be displayed.
+    Condition and choice text are separated by a :
     
     when a choice is clicked, selected is set to the value of what was
         selected, starting at 1.
@@ -75,7 +84,7 @@ delay:
     usage: delay X
     X being number of frames to hold, DS runs at 60 frames per second.
 
-random:
+random: // NOT IMPLEMENTED
     usage: random var low high
     set var to a number between low and high (inclusive)
 
@@ -94,30 +103,3 @@ cleartext:
     if no type is given, it`ll make enough blank lines to fill the display
     if type is !, it`ll completely clear the text buffer (including history)
 
-Notes:
-    titlescreen:
-        icon: 32x32 .png
-        thumbnail 100x75 .png
-        
-    To place a variable in a command, prefix the variable name with $ and it
-        will directly replace it. Strings only
-
-Conversion:
-    Images:
-        Sprites should be in png format and backgrounds as jpg or png. Alpha 
-            transparency is supported for sprites. 
-        To avoid color banding, decrease the color depth of the images to 
-            5bits/channel and use dithering (png doesn't support 5bits/channel,
-			so store them in 8bits/channel instead).
-        For background images you should also make sure that they're 256x192 
-            in size.
-
-    Sound:
-        Sound effects should be encoded in aac.
-
-        `ffmpeg -i infile -acodec libfaac outfile`
-        
-	.zip:
-        For increased file access performance, put the files in an uncompressed
-        .zip file. each folder should get its own archive: background.zip, 
-        foreground.zip, script.zip, sound.zip.
