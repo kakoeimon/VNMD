@@ -5,6 +5,7 @@
 #include "novel_images.h"
 #include "novel_sounds.h"
 #include "novel_variables.h"
+#include "novel_external_functions.h"
 
 char NOVEL_CHOICE_CHAR[1] = {'z' + 5};
 
@@ -35,6 +36,7 @@ int read_int() {
 
 
 u16 read_u16() {
+    
     u8 a = *get_pos();
     NOVEL.position++;
     u8 b = *get_pos();
@@ -123,7 +125,12 @@ void novel_save() {
     //draw_int(index, 2, 29); //I have no idea why, but if I delete this line the game crashes.
     clear_text();
     SYS_doVBlankProcess();
+    #ifdef GR_LANG
+    VDP_drawText("So paivm_di apohgjezsgje.", NOVEL_TEXT_LEFT, NOVEL_TEXT_TOP);
+    #endif
+    #ifndef GR_LANG
     VDP_drawText("Game Saved", NOVEL_TEXT_LEFT, NOVEL_TEXT_TOP);
+    #endif
     SYS_doVBlankProcess();
     SRAM_enable();
     SRAM_writeWord(index, NOVEL_SAVE_CHECK_NUM);
@@ -166,7 +173,12 @@ void novel_load() {
     //draw_int(index, 2, 29); //I have no idea why, but if I delete this line the game crashes.
     clear_text();
     SYS_doVBlankProcess();
+    #ifdef GR_LANG
+    VDP_drawText("Uyqsxrg...", NOVEL_TEXT_LEFT, NOVEL_TEXT_TOP);
+    #endif
+    #ifndef GR_LANG
     VDP_drawText("Loading...", NOVEL_TEXT_LEFT, NOVEL_TEXT_TOP);
+    #endif
     SYS_doVBlankProcess();
     SRAM_enable();
     if (NOVEL_SAVE_CHECK_NUM == SRAM_readWord(index)) {
@@ -194,10 +206,10 @@ void novel_load() {
         }
         SRAM_disable();
 
-        draw_background(tmp_bg, 16);
+        novel_draw_background(tmp_bg, 16);
         for (int i = 0; i < 3; i++) {
             if (tmp_img[i] != MAX_S16) {
-                draw_foreground(tmp_img[i], NOVEL.fore_pos[i][0], NOVEL.fore_pos[i][1]);
+                novel_draw_foreground(tmp_img[i], NOVEL.fore_pos[i][0], NOVEL.fore_pos[i][1]);
             }
         }
         if (NOVEL.music != NOVEL_NO_MUSIC) {
@@ -209,7 +221,12 @@ void novel_load() {
         
     } else {
         SRAM_disable();
+        #ifdef GR_LANG
+        VDP_drawText("Jem^ htq_da", NOVEL_TEXT_LEFT, NOVEL_TEXT_TOP);
+        #endif
+        #ifndef GR_LANG
         VDP_drawText("Empty Slot", NOVEL_TEXT_LEFT, NOVEL_TEXT_TOP);
+        #endif
         for (int i = 0; i < 60; i++) {
             SYS_doVBlankProcess();
         }
@@ -232,10 +249,16 @@ void novel_pause_menu() {
         //VDP_clearPlane(WINDOW, TRUE);
         clear_text();
         SYS_doVBlankProcess();
+        #ifdef GR_LANG
+        VDP_drawText("Apoh^jetrg", NOVEL_TEXT_LEFT+1, NOVEL_TEXT_TOP);
+        VDP_drawText("Uyqsxrg", NOVEL_TEXT_LEFT+1, NOVEL_TEXT_TOP+1);
+        VDP_drawText("Epirsqou^ rsgm aqvij^ ohymg", NOVEL_TEXT_LEFT+1, NOVEL_TEXT_TOP+2);
+        #endif
+        #ifndef GR_LANG
         VDP_drawText("Save", NOVEL_TEXT_LEFT+1, NOVEL_TEXT_TOP);
         VDP_drawText("Load", NOVEL_TEXT_LEFT+1, NOVEL_TEXT_TOP+1);
         VDP_drawText("Return to title Screen", NOVEL_TEXT_LEFT+1, NOVEL_TEXT_TOP+2);
-
+        #endif
         NOVEL.pause_menu_selected = FALSE;
         while (!NOVEL.pause_menu_selected && NOVEL.pause_menu)
         {   
@@ -248,10 +271,16 @@ void novel_pause_menu() {
             NOVEL.pause_menu_selected = FALSE;
             if (NOVEL.pause_menu_pos == 0) {
                 clear_text();
-
-                VDP_drawText("Save Slot 1", NOVEL_TEXT_LEFT+1, NOVEL_TEXT_TOP);
-                VDP_drawText("Save Slot 2", NOVEL_TEXT_LEFT+1, NOVEL_TEXT_TOP+1);
-                VDP_drawText("Save Slot 3", NOVEL_TEXT_LEFT+1, NOVEL_TEXT_TOP+2);
+                #ifdef GR_LANG
+                VDP_drawText("Apoh^jetrg rsg htq_da 1", NOVEL_TEXT_LEFT+1, NOVEL_TEXT_TOP);
+                VDP_drawText("Apoh^jetrg rsg htq_da 2", NOVEL_TEXT_LEFT+1, NOVEL_TEXT_TOP+1);
+                VDP_drawText("Apoh^jetrg rsg htq_da 3", NOVEL_TEXT_LEFT+1, NOVEL_TEXT_TOP+2);
+                #endif
+                #ifndef GR_LANG
+                VDP_drawText("Save to Slot 1", NOVEL_TEXT_LEFT+1, NOVEL_TEXT_TOP);
+                VDP_drawText("Save to Slot 2", NOVEL_TEXT_LEFT+1, NOVEL_TEXT_TOP+1);
+                VDP_drawText("Save to Slot 3", NOVEL_TEXT_LEFT+1, NOVEL_TEXT_TOP+2);
+                #endif
                 NOVEL.pause_menu_selected = FALSE;
                 while (!NOVEL.pause_menu_selected && NOVEL.pause_menu) {
                     novel_pause_menu_set_cursor(3);
@@ -267,9 +296,16 @@ void novel_pause_menu() {
                 NOVEL.pause_menu_pos = 0;
                 clear_text();
                 
+                #ifdef GR_LANG
+                VDP_drawText("Uyqsxrg sg& htq_da& 1", NOVEL_TEXT_LEFT+1, NOVEL_TEXT_TOP);
+                VDP_drawText("Uyqsxrg sg& htq_da& 2", NOVEL_TEXT_LEFT+1, NOVEL_TEXT_TOP+1);
+                VDP_drawText("Uyqsxrg sg& htq_da& 3", NOVEL_TEXT_LEFT+1, NOVEL_TEXT_TOP+2);
+                #endif
+                #ifndef GR_LANG
                 VDP_drawText("Load Slot 1", NOVEL_TEXT_LEFT+1, NOVEL_TEXT_TOP);
                 VDP_drawText("Load Slot 2", NOVEL_TEXT_LEFT+1, NOVEL_TEXT_TOP+1);
                 VDP_drawText("Load Slot 3", NOVEL_TEXT_LEFT+1, NOVEL_TEXT_TOP+2);
+                #endif
                 NOVEL.pause_menu_selected = FALSE;
                 while (!NOVEL.pause_menu_selected && NOVEL.pause_menu) {
                     novel_pause_menu_set_cursor(3);
@@ -618,14 +654,14 @@ void novel_update() {
         NOVEL.position++;
         int back_index = read_int();
         int fade_time = read_int();
-        draw_background(back_index, fade_time);
+        novel_draw_background(back_index, fade_time);
         break;
     case 1: //setimg image.png x y
         NOVEL.position++;
         int fore_index = read_int();
         int x = read_int();
         int y = read_int();
-        draw_foreground(fore_index, x , y);
+        novel_draw_foreground(fore_index, x , y);
         break;
     case 2: //SOUND
         {
@@ -643,7 +679,7 @@ void novel_update() {
                 NOVEL_PLAY_SOUND[sound_pos](loop);
             }
         }
-        break;
+        return;
     case 3: //MUSIC
         {
             NOVEL.position++;
@@ -658,7 +694,7 @@ void novel_update() {
             NOVEL.music = music_pos;
             
         }
-        break;
+        return;
     case 4: //TEXT
         {
             NOVEL.position += draw_text(get_pos()+1);
@@ -697,10 +733,7 @@ void novel_update() {
 
 
         }
-        //SYS_doVBlankProcess();
-        //novel_update();
         return;
-        break;
     case 7: //GSETVAR
         break;
     case 8: //IF
@@ -744,14 +777,10 @@ void novel_update() {
         } else {
             NOVEL.position += read_int() - 2;
         }
-        //novel_update();
         return;
-        break;
     case 9: //FI
         NOVEL.position++;
         return;
-        //novel_update();
-        break;
     case 10: //JUMP
         {
             NOVEL.position++;
@@ -760,7 +789,7 @@ void novel_update() {
             NOVEL.script_index = new_script_index;
             return;
         }
-        break;
+        return;
     case 11: //DELAY
         {
             NOVEL.position++;
@@ -772,9 +801,7 @@ void novel_update() {
                 SYS_doVBlankProcess();
             }
         }
-        
-        
-        break;
+        return;
     case 12: //RANDOM
         break;
     case 13: //LABEL
@@ -783,17 +810,14 @@ void novel_update() {
         NOVEL.position++;
         NOVEL.position = read_s32();
 
-        
-        break;
+        return;
     case 15: //CLEAR_TEXT
         clear_text();
-
         break;
     case 16: //RESET VARS Custom command made for setvar ~ ~
         NOVEL.position++;
         novel_reset_vars();
-
-        break;
+        return;
     case 17: //RETJUMP this is when a line is like this: jump $RETFILE $RETLABEL
         {
             NOVEL.position++;
@@ -809,13 +833,18 @@ void novel_update() {
             } else {
                 NOVEL.position = 0;
             }
-            
-            
-            SYS_doVBlankProcess();
         }
-        break;
+        return;
     case 18: //ifchoice
         NOVEL.position = make_ifchoice();
+        break;
+    case 19: //external functions
+        {
+            NOVEL.position++;
+            int func = read_char();
+            nv_external_functions[func]();
+        }
+        
         break;
     default:
 

@@ -1,3 +1,4 @@
+from genericpath import isfile
 import os
 from sre_parse import FLAGS
 import subprocess
@@ -5,6 +6,8 @@ import glob
 from PIL import Image
 import sys
 import pathlib
+
+dithering = True
 
 ##########################################
 ini = open("novel.ini")
@@ -17,8 +20,19 @@ text_bottom = int(ini.readline().replace("TEXT_BOTTOM ", ""))
 text_left = int(ini.readline().replace("TEXT_LEFT ", ""))
 text_right = int(ini.readline().replace("TEXT_RIGHT ", ""))
 compression = ini.readline().replace("COMPRESSION ", "").replace("\n", "")
+save_check = ini.readline().replace("SAVE_CHECK ", "").replace("\n", "")
+sound_drv = ini.readline().replace("SOUND_DRV ", "").replace("\n", "").strip()
+try:
+    dithering = ini.readline().replace("DITHERING ", "").replace("\n", "").strip()
+    print("DITHERING is " + dithering)
+    if dithering == "FALSE":
+        dithering = False
+except:
+    pass
 
 tmp_back =  glob.glob('novel\\background\\**\\*.png', recursive=True)
+if os.path.isfile("novel\\background\\black.jpg"):
+    tmp_back = ["novel\\background\\black.jpg"]
 if (len(tmp_back) == 0):
     tmp_back =  glob.glob('novel\\background\\**\\*.jpg', recursive=True)
 if (len(tmp_back) == 0):
@@ -50,13 +64,13 @@ def mk_dirtrees(file_name:str):
 
 def scale_n_save_bg(image_file):
     img = Image.open(image_file)
-    scaled = img.resize([bg_width, bg_height])
+    scaled = img.resize([bg_width, bg_height], resample=Image.HAMMING)
     mk_dirtrees(image_file)
     scaled.save(image_file)
 
 def scale_n_save_fg(image_file):
     img = Image.open(image_file)
-    scaled = img.resize([int(img.size[0] * img_scale), int(img.size[1] * img_scale)])
+    scaled = img.resize([int(img.size[0] * img_scale), int(img.size[1] * img_scale)], resample=Image.HAMMING)
     mk_dirtrees(image_file)
     scaled.save(image_file)
 
@@ -64,28 +78,42 @@ def scale_n_save_fg(image_file):
 def crop_n_save(image_file):
     img = Image.open(image_file)
     # 8 + 1 cause this way we will not cut the images
-    x = int(img.size[0] / 8 + 1) * 8 - 4 #this is -4 so to cut both sides
-    y = int(img.size[1] / 8 + 1) * 8 #this is 8 + 1 to make the image taller and not cut it.
-    if img.size[1] % 8 == 0:
-        cropped = img.crop((4,0,x,y))
-    else:
-        dif = img.size[1] - y
-        cropped = img.crop((4,dif,x,y + dif))
-    mk_dirtrees(image_file)
-    cropped.save(image_file)
+    if img.size[0] % 8 or img.size[1] %8:
+        x = int(img.size[0] / 8 + 1) * 8 - 4 #this is -4 so to cut both sides
+        y = int(img.size[1] / 8 + 1) * 8 #this is 8 + 1 to make the image taller and not cut it.
+        if img.size[1] % 8 == 0:
+            cropped = img.crop((4,0,x,y))
+        else:
+            dif = img.size[1] - y
+            cropped = img.crop((4,dif,x,y + dif))
+        mk_dirtrees(image_file)
+        cropped.save(image_file)
 
 def reduce_colors_convert(img_file, num_colors):
-    subprocess.run([magick_convert,
-        img_file, 
-        '-fx',
-        '-1.28500726818617*u*u*u + 1.92751090227925*u*u + 0.357496365906917*u',
-        '-ordered-dither',
-        'o8x8,8',
-        '-colors',
-        str(num_colors),
-        '-ordered-dither',
-        'threshold,8,8,8',
-        img_file])
+    if dithering:
+        subprocess.run([magick_convert,
+            img_file, 
+            '-fx',
+            '-1.28500726818617*u*u*u + 1.92751090227925*u*u + 0.357496365906917*u',
+            '-ordered-dither',
+            'o8x8,8',
+            '-colors',
+            str(num_colors),
+            '-ordered-dither',
+            'threshold,8,8,8',
+            img_file])
+    else:
+        subprocess.run([magick_convert,
+            img_file, 
+            '-fx',
+            '-1.28500726818617*u*u*u + 1.92751090227925*u*u + 0.357496365906917*u',
+            #'-ordered-dither',
+            #'o8x8,8',
+            '-colors',
+            str(num_colors),
+            #'-ordered-dither',
+            #'threshold,8,8,8',
+            img_file])
 
     img = Image.open(img_file)
     if img.mode != "P":
@@ -300,6 +328,7 @@ if len(sys.argv) > 1:
         check_back_size(out)
         check_colors(out)
     print(out)
+    subprocess.run(["python", "create_image_res.py"])
 
 else:
     convert_images()

@@ -4,6 +4,8 @@ from turtle import right
 from PIL import Image
 import unicodedata
 
+lines_count = 0
+
 novel_stop_music = 1600
 
 ##########################################
@@ -20,6 +22,26 @@ compression = ini.readline().replace("COMPRESSION ", "").replace("\n", "")
 save_check = ini.readline().replace("SAVE_CHECK ", "").replace("\n", "")
 sound_drv = ini.readline().replace("SOUND_DRV ", "").replace("\n", "")
 
+dithering = True
+try:
+    dithering = ini.readline().replace("DITHERING ", "").replace("\n", "").strip()
+    print("DITHERING is " + dithering)
+    if dithering == "FALSE":
+        dithering = False
+except:
+    pass
+
+bad_filenames = False
+try:
+    bad_filenames = ini.readline().replace("BAD_FILENAMES ", "").replace("\n", "").strip()
+    print("BAD FILENAMES is " + bad_filenames)
+    if bad_filenames == "TRUE":
+        bad_filenames = True
+    else:
+        bad_filenames = False
+except:
+    pass
+
 tmp_back =  glob.glob('novel\\background\\**\\*.png', recursive=True)
 if (len(tmp_back) == 0):
     tmp_back =  glob.glob('novel\\background\\**\\*.jpg', recursive=True)
@@ -34,6 +56,13 @@ img_scale = (bg_width * 8) / tmp_back.size[0]
 
 bg_left = int((40 - bg_width) / 2)
 
+external_funcs = {}
+external_funcs_file = open("inc\\novel_external_functions.h", "r")
+for func in external_funcs_file.readlines():
+    if func[:5] == "void ":
+        external_funcs[func[5:].replace("(", "").replace(")", "").replace(";", "").strip()] = len(external_funcs)
+
+print(external_funcs)
 sounds_positions = {}
 
 for wav in glob.glob("res\\wav\\**\\*.wav", recursive=True):
@@ -114,13 +143,9 @@ def count_line(lines, i):
     elif c == "fi":
         count += 1
     elif c == "jump":
-        t = line.replace("\t", "").replace("jump ", "", 1).lower().replace("\n", "").replace("/", "_").replace(".scr", "").split(" ")
+        t = line.strip().replace("\t", "").replace("jump ", "", 1).lower().replace("\n", "").replace("/", "_").replace(".scr", "").strip().split(" ")
         key = t[0].replace("-", "_")
-        #print(script_file)
-        if (key[0] == "$"):
-            count += 6
-        else:
-            count += 7
+        count += 7
     elif c == "delay":
         count += 3
     elif c == "random":
@@ -131,6 +156,11 @@ def count_line(lines, i):
         count += 5
     elif c == "cleartext":
         count += 0
+    else:
+        ############### EXTERNAL FUNCTIONS
+        func = line.split(" ")[0].strip()
+        if func in external_funcs:
+            count +=2
     return count
 
 
@@ -154,7 +184,7 @@ functions = {"bgload":0, "setimg":1, "sound":2, "music":3,
             "text":4, "choice":5, "setvar":6, "gsetvar":7,
             "if":8, "fi":9, "jump":10, "delay":11, "random":12,
             "label":13, "goto": 14, "cleartext": 15 , "reset_vars": 16,
-            "retjump": 17, "ifchoice": 18,
+            "retjump": 17, "ifchoice": 18, "external_func": 19,
 
 }
 
@@ -183,7 +213,7 @@ script_res = open("res\\scripts_res.res", "w")
 
 scripts_dir = {"main":0}
 script_label = {"main": {}}
-script_var = {"selected":0}
+script_var = {"selected":0, "retfile":1, "retlabel":2}
 script_retfile = ["retfile"]
 script_retlabel = ["retlabel"]
 script_byte_count = []
@@ -357,6 +387,7 @@ for script_file in glob.glob('novel\\script\\**\\*.scr', recursive=True):
                 out.write(int(novel_stop_music).to_bytes(2, "big"))
             pass
         elif c == "text":
+            lines_count +=1
             t = line.replace("text ", "", 1).replace("\n", "").replace("\t", " ").lstrip()
             if len(t) == 0 or t[0] == "~":
                 continue
@@ -463,7 +494,7 @@ for script_file in glob.glob('novel\\script\\**\\*.scr', recursive=True):
                 print(line)
                 exit()
             coms[3] = coms[3].replace(":", "") #Using : makes it easier to right if selections cause it behaves like python in the vscode
-            print(coms)
+            #print(coms)
             if coms[3].isnumeric():
                 out.write(int(coms[3]).to_bytes(2, "big"))
                 out.write((0).to_bytes(1, "big"))
@@ -512,10 +543,12 @@ for script_file in glob.glob('novel\\script\\**\\*.scr', recursive=True):
                     out.write((0).to_bytes(1, "big"))
                     out.write(script_var[key.replace("$", "").strip()].to_bytes(2, "big"))
                     out.write(int(script_var[t[1].replace("$", "").strip()]).to_bytes(2, "big"))
+                    out.write((0).to_bytes(1, "big")) #Extra one 0 to have the same size with regular jump
                 else:
                     out.write((1).to_bytes(1, "big"))
                     out.write(script_var[key.replace("$", "").strip()].to_bytes(2, "big"))
                     out.write((0).to_bytes(2, "big"))
+                    out.write((0).to_bytes(1, "big")) #Extra one 0 to have the same size with regular jump
             else:
                 out.write(functions["jump"].to_bytes(1, "big"))
                 try:
@@ -589,7 +622,7 @@ for script_file in glob.glob('novel\\script\\**\\*.scr', recursive=True):
                     out.write((1).to_bytes(1, "big"))
                     
                     parts = ifs[0].strip().split(" ")
-                    print(parts)
+                    #print(parts)
                     if len(parts) < 3: #just a variable so it will return true if it is != 0
                         out.write((0).to_bytes(1, "big"))
                         try:
@@ -664,11 +697,15 @@ for script_file in glob.glob('novel\\script\\**\\*.scr', recursive=True):
                             print("\nThe comparison in ifchoice \"" + parts[1] + "\" in script \"" + script_file + "\", line " + str(i+1) + " does not exists.")
                             exit()
                         
-                    print(ifs[1])
+                    #print(ifs[1])
                     out.write(ifs[1].strip().encode())           
                     out.write((0).to_bytes(1, "big"))
-
-    
+        else:
+            ############### EXTERNAL FUNCTIONS
+            func = line.split(" ")[0].strip()
+            if func in external_funcs:
+                out.write(functions["external_func"].to_bytes(1, "big"))
+                out.write(external_funcs[func].to_bytes(1, "big"))
     #print(script_file)
     #print(bytes_count)
     script.close()
@@ -692,23 +729,65 @@ scripts_c.write("};\n\n")
 scripts_c.close()
 
 
+
+
 variables_h = open("inc/novel_variables.h", "w")
 variables_h.write("#ifndef H_NOVEL_VARIABLES\n")
 variables_h.write("#define H_NOVEL_VARIABLES\n\n")
 variables_h.write("extern const int NOVEL_SAVE_CHECK_NUM;\n\n")
 variables_h.write("extern const int NOVEL_NUM_VARIABLES;\n")
 variables_h.write("extern const int NOVEL_NUM_GLOBAL_VARIABLES;\n")
-variables_h.write("extern int NOVEL_VARIABLES[];\n")
+variables_h.write("extern int NOVEL_VARIABLES[];\n\n")
+
+variables_h.write("\n\n")
+variables_h.write("//VARABLES\n")
+for var in script_var:
+    variables_h.write("#define NVAR_" + var + " NOVEL_VARIABLES[" + str(script_var[var])+ "]\n")
+
+variables_h.write("\n\n")
+variables_h.write("//FILES\n")
+for scr in scripts_dir:
+    variables_h.write("#define NFILE_" + scr + " " + str(scripts_dir[scr])+ "\n")
+
+variables_h.write("\n\n")
+variables_h.write("//LABELS\n")
+for scr in script_label:
+    for label in script_label[scr]:
+        variables_h.write("#define NLABEL_" + scr + "_" + label + " " + str(script_label[scr][label])+ "\n")
+variables_h.write("\n\n")
+
+if not bad_filenames:
+    variables_h.write("\n\n")
+    variables_h.write("//BACKGROUNDS\n")
+    for bg in backgrounds:
+        variables_h.write("#define NBG_" + bg.replace(".png", "").replace(".jpg", "").strip() + " " + str(backgrounds[bg])+ "\n")
+    variables_h.write("\n\n")
+
+    variables_h.write("\n\n")
+    variables_h.write("//FOREGROUNDS\n")
+    for fg in foregrounds:
+        variables_h.write("#define NFG_" + fg.replace(".png", "").replace(".jpg", "").strip() + " " + str(foregrounds[fg])+ "\n")
+    variables_h.write("\n\n")
+else:
+    variables_h.write("//BAD FILENAMES\n")
+    variables_h.write("\n\n")
+
 variables_h.write("\n#endif\n")
 variables_h.close()
 
 var_c = open("src/novel_variables.c", "w")
-var_c.write("#include \"novel_variables.h\"\n\n")
+var_c.write("#include \"novel_variables.h\"\n")
+var_c.write("#include \"novel_external_functions.h\"\n\n")
 var_c.write("const int NOVEL_SAVE_CHECK_NUM = " + str(save_check) + ";\n\n")
 var_c.write("const int NOVEL_NUM_VARIABLES = " + str(len(script_var)) + ";\n")
 var_c.write("const int NOVEL_NUM_GLOBAL_VARIABLES = " + str(num_global_var) + ";\n\n")
 var_c.write("int NOVEL_VARIABLES[" + str(len(script_var)) + "];\n")
+var_c.write("void (*nv_external_functions[])() = {\n")
+for func in external_funcs:
+    var_c.write("\t" + func + ",\n")
+var_c.write("};")
 var_c.close()
+
 
 if len(script_var) == 1:
     print("----------------------------")
@@ -716,3 +795,5 @@ if len(script_var) == 1:
 
 #print(music_positions)
 print(script_var)
+
+print("Lines of text : " + str(lines_count))

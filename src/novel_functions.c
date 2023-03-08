@@ -19,14 +19,14 @@ void clear_text() {
     //VDP_clearTextArea(NOVEL_TEXT_LEFT, NOVEL_TEXT_TOP, NOVEL_TEXT_WIDTH, novel_text_height);
 }
 
-void draw_background(int index, int fade_time) {
+void novel_draw_background(int index, int fade_time) {
     const Image *img = NOVEL_BACKGROUND[index];
     
     //VDP_clearPlane(BG_B, FALSE);
     
     
     NOVEL.fore_pal = NOVEL_FORE_PAL_START;
-    NOVEL.fore_index = TILE_USERINDEX + img->tileset->numTile;
+    NOVEL.fore_index = TILE_USER_INDEX + img->tileset->numTile;
     for (int i = 0; i < 3; i++) {
         NOVEL.fore_imgs[i] = MAX_S16;
     }
@@ -35,18 +35,18 @@ void draw_background(int index, int fade_time) {
     
     SYS_doVBlankProcess();
     if (index != NOVEL.back_index) {
-
+        
         SYS_doVBlankProcess();
         SYS_doVBlankProcess();
         //PAL_setPalette(PAL0, palette_black, CPU);
 
-        VDP_loadTileSet(img->tileset,TILE_USERINDEX, DMA_QUEUE);
+        VDP_loadTileSet(img->tileset,TILE_USER_INDEX, DMA_QUEUE);
         
         //for (int i =0; i < 60; i++) SYS_doVBlankProcess();
 
 
         NOVEL.back_index = index;
-        VDP_setTileMapEx(BG_B, img->tilemap, TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, TILE_USERINDEX), NOVEL_BG_LEFT, NOVEL_BG_TOP,  0, 0, NOVEL_BG_WIDTH, NOVEL_BG_HEIGHT, DMA_QUEUE);
+        VDP_setTileMapEx(BG_B, img->tilemap, TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, TILE_USER_INDEX), NOVEL_BG_LEFT, NOVEL_BG_TOP,  0, 0, NOVEL_BG_WIDTH, NOVEL_BG_HEIGHT, DMA_QUEUE);
         PAL_setPalette(PAL0, img->palette->data, DMA_QUEUE);
         SYS_doVBlankProcess();
     }
@@ -63,7 +63,7 @@ void draw_background(int index, int fade_time) {
     
 }
 
-void draw_foreground(int index, int x, int y) {
+void novel_draw_foreground(int index, int x, int y) {
     const Image *img = NOVEL_FOREGROUND[index];
     int s_x = img->tilemap->w;
     int s_y = img->tilemap->h;
@@ -82,7 +82,7 @@ void draw_foreground(int index, int x, int y) {
         NOVEL.fore_pal = NOVEL_FORE_PAL_START;
     }
     NOVEL.fore_index += img->tileset->numTile;
-    VDP_loadFont(&font_default, DMA);
+    //VDP_loadFont(&font_default, DMA);
     SYS_doVBlankProcess();
 }
 

@@ -12,7 +12,10 @@ First you will need to install [SGDK](https://github.com/Stephane-D/SGDK/release
 
 Next you will need [Python3](https://www.python.org/downloads/). Probably you already have this so check it in your Command Prompt by typing: python --version.
 
-You will also need [PILLOW](https://pillow.readthedocs.io/en/stable/installation.html) for Python. Use pip commands to install it.
+You will also need for Python [PILLOW](https://pillow.readthedocs.io/en/stable/installation.html) , [SoundFile](https://pypi.org/project/soundfile/) and [pydub](https://pypi.org/project/pydub/). 
+Use pip commands to install them.
+
+
 
 Then Optionaly but for much better quality, install [ImageMagick](https://imagemagick.org/script/download.php) and when you install check the convert legacy.
 
@@ -129,7 +132,7 @@ SOUND_DRV 2ADPCM
 * * XGM
 * 
 
-### String Vars
+# String Vars
 * VNDS can have string vars that can be used inside the text or as vars that hold script files or labels
 * VNMD can have string vars but you cannot use them inside the text.
 * String vars can be script files or labels (labels can be only labels of the working file)
@@ -148,8 +151,8 @@ SOUND_DRV 2ADPCM
             text SGDK ROCKS!
         fi
 
-### Extra Commans
-### ifcoice
+# Extra Commans
+## ifcoice
 * ifchoice is a new command that exists only in VNMD and not in VNDS.
 it is similar to choice but it performs checks to make the choices visible.
 
@@ -172,15 +175,46 @@ it is similar to choice but it performs checks to make the choices visible.
     Next you can use selected like it was a simple choice command.
     
 
-### So that's all... good luck in converting
+
+# External Functions
+* External functions are functions the user create and can be used in the scripts.
+    
+        The external functions are located in scr/novel_external_functions.c
+    A simple example is the fade_out function :
+
+        void fade_out() {
+            PAL_fadeOutAll(60, FALSE);
+            PAL_setColor(31, RGB24_TO_VDPCOLOR(0xffffff));
+        }
+    This function located in scr/novel_external_functions.c can be used in the script by just writing fade_out in the script.
+    External functions are just void functions and take no arguments.
+
+* The Novel variables, script files, label etc. are exposed to the user by macros.
+* * Variables.
+    * Every variable created in the script by the command setvar can be found in C by using the name of the var with the prefix NVAR_.
+    * e.g. the var selection is in C as NVAR_selection
+    * e.g. a var created in script with the command setvar points = 0 can be found as NVAR_points
+* * Script Files
+    * Every Script file can be found in C with the prefix NFILE_
+    * e.g. the main.scr is NFILE_main
+* * Labels
+    * Labels in the script files can be found with the prefix NLABEL_ plus the name of the script the label is on and the label name.
+    * e.g. a label named start in the script main.scr is NLABAL_main_start
+
+All those macros but and the header file for the novel_external_functions.c are created by running the python script create_external_functions.py
+Be sure to call this script every time you need access to a newly created var, script file or label.
+# So that's all... good luck in converting or creating new games.
 Many VNDS Novels require work to make them run.
 
-### Updating SGDK
+# Updating SGDK
 If you update SGDK be sure to delete the boot dir inside the scr dir, otherwise the project will not compile.
 
+# Other Stuff
+You can find more vnmd stuff at https://github.com/kakoeimon/VNMD_Stuff
+There you can find and a simple VNMD language extension for the VSCode.
+It will highlight basic VNDS commands and make writing a little bit easier.
 
 ## TODO
 * Add random command
-* Add external_function command
-* * With an external function command we will have the ability to call C functions from the Script and get the control of the Novel.
+* Create a tutorial.
 
